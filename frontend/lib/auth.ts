@@ -8,8 +8,8 @@ export async function login(credentials: Record<string, string>): Promise<{ deta
   });
 }
 
-export async function register(data: Record<string, string>): Promise<{ detail: string }> {
-  return apiFetch<{ detail: string }>("/api/v1/auth/register/", {
+export async function register(data: Record<string, string>): Promise<User> {
+  return apiFetch<User>("/api/v1/auth/register/", {
     method: "POST",
     body: JSON.stringify(data),
   });

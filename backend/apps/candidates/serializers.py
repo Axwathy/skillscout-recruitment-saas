@@ -1,13 +1,36 @@
+from django.db import IntegrityError, transaction
+from django.urls import reverse
 from rest_framework import serializers
 
-from apps.core.storage import get_signed_url
 from apps.jobs.models import Job
 
-from .models import Application, ApplicationHistory, Candidate, Resume
+from .models import Application, ApplicationHistory, Candidate, ParsedResume, Resume
+
+
+class ParsedResumeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ParsedResume
+        fields = (
+            "id",
+            "status",
+            "schema_version",
+            "data",
+            "confidence",
+            "parser_model",
+            "validation_errors",
+            "token_usage",
+            "estimated_cost",
+            "parsed_at",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
 
 
 class ResumeSerializer(serializers.ModelSerializer):
+    view_url = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
+    parsed_resume = serializers.SerializerMethodField()
 
     class Meta:
         model = Resume
@@ -19,7 +42,9 @@ class ResumeSerializer(serializers.ModelSerializer):
             "file_size",
             "mime_type",
             "status",
+            "view_url",
             "download_url",
+            "parsed_resume",
             "created_at",
         )
         read_only_fields = fields
@@ -27,7 +52,22 @@ class ResumeSerializer(serializers.ModelSerializer):
     def get_download_url(self, obj):
         if not self.context.get("include_download_url"):
             return None
-        return get_signed_url("resumes", obj.file_url, expiry_seconds=300)
+        return reverse("resume-download", args=[obj.id])
+
+    def get_view_url(self, obj):
+        if not self.context.get("include_download_url"):
+            return None
+        return reverse("resume-view", args=[obj.id])
+
+    def get_parsed_resume(self, obj):
+        if not self.context.get("include_parsed_resume", False):
+            return None
+
+        try:
+            parsed_resume = obj.parsed_resume
+        except ParsedResume.DoesNotExist:
+            return None
+        return ParsedResumeSerializer(parsed_resume).data
 
 
 class ResumeUploadSerializer(serializers.Serializer):
@@ -41,9 +81,14 @@ class ResumeUploadSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         require_identity = self.context.get("require_identity", True)
-        if require_identity and not attrs.get("candidate_id") and not attrs.get("email"):
+        if (
+            require_identity
+            and not attrs.get("candidate_id")
+            and not attrs.get("application_id")
+            and not attrs.get("email")
+        ):
             raise serializers.ValidationError(
-                "Either candidate_id or email is required to associate the resume."
+                "Either application_id, candidate_id, or email is required to associate the resume."
             )
         
         file = attrs["file"]
@@ -120,6 +165,12 @@ class ApplicationSerializer(serializers.ModelSerializer):
             "organization",
             "organization_name",
             "status",
+            "semantic_score",
+            "skill_score",
+            "experience_score",
+            "final_score",
+            "score_version",
+            "score_calculated_at",
             "applied_at",
             "updated_at",
         )
@@ -131,6 +182,12 @@ class ApplicationSerializer(serializers.ModelSerializer):
             "job_slug",
             "organization",
             "organization_name",
+            "semantic_score",
+            "skill_score",
+            "experience_score",
+            "final_score",
+            "score_version",
+            "score_calculated_at",
             "applied_at",
             "updated_at",
         )
@@ -152,7 +209,8 @@ class ApplicationDetailSerializer(ApplicationSerializer):
             resumes,
             many=True,
             context={
-                "include_download_url": self.context.get("include_resume_download_urls", False)
+                "include_download_url": self.context.get("include_resume_download_urls", False),
+                "include_parsed_resume": self.context.get("include_parsed_resume", False),
             },
         ).data
 
@@ -169,58 +227,89 @@ class PublicApplicationCreateSerializer(serializers.Serializer):
     phone = serializers.CharField(max_length=50, required=False, allow_blank=True)
     linkedin_url = serializers.URLField(required=False, allow_blank=True)
     github_url = serializers.URLField(required=False, allow_blank=True)
+    resume = serializers.FileField(required=False)
 
     def validate(self, attrs):
         job = self.context["job"]
         if job.status != Job.Status.PUBLISHED:
             raise serializers.ValidationError("This job is not accepting applications.")
+        attrs["email"] = attrs["email"].strip().lower()
+
+        resume = attrs.get("resume")
+        if resume:
+            if resume.size > 10 * 1024 * 1024:
+                raise serializers.ValidationError({"resume": "File size must be under 10MB."})
+
+            allowed_types = [
+                "application/pdf",
+                "application/msword",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ]
+            if resume.content_type not in allowed_types:
+                raise serializers.ValidationError(
+                    {"resume": "Only PDF and DOCX files are supported."}
+                )
         return attrs
 
     def create(self, validated_data):
         job = self.context["job"]
-        candidate, created = Candidate.objects.get_or_create(
-            organization=job.organization,
-            email=validated_data["email"],
-            defaults={
-                "first_name": validated_data["first_name"],
-                "last_name": validated_data["last_name"],
-                "phone": validated_data.get("phone", ""),
-                "linkedin_url": validated_data.get("linkedin_url", ""),
-                "github_url": validated_data.get("github_url", ""),
-            },
-        )
+        self.resume_file = validated_data.pop("resume", None)
+        self.application_created = False
 
-        if not created:
-            for field in ("first_name", "last_name", "phone", "linkedin_url", "github_url"):
-                value = validated_data.get(field)
-                if value is not None:
-                    setattr(candidate, field, value)
-            candidate.save(
-                update_fields=[
-                    "first_name",
-                    "last_name",
-                    "phone",
-                    "linkedin_url",
-                    "github_url",
-                    "updated_at",
-                ]
+        with transaction.atomic():
+            candidate, created = Candidate.objects.get_or_create(
+                organization=job.organization,
+                email=validated_data["email"],
+                defaults={
+                    "first_name": validated_data["first_name"],
+                    "last_name": validated_data["last_name"],
+                    "phone": validated_data.get("phone", ""),
+                    "linkedin_url": validated_data.get("linkedin_url", ""),
+                    "github_url": validated_data.get("github_url", ""),
+                },
             )
 
-        application, app_created = Application.objects.get_or_create(
-            candidate=candidate,
-            job=job,
-            defaults={"organization": job.organization},
-        )
-        if not app_created:
-            raise serializers.ValidationError(
-                {"email": "An application for this job already exists for this email."}
-            )
+            if not created:
+                for field in ("first_name", "last_name", "phone", "linkedin_url", "github_url"):
+                    value = validated_data.get(field)
+                    if value is not None:
+                        setattr(candidate, field, value)
+                candidate.save(
+                    update_fields=[
+                        "first_name",
+                        "last_name",
+                        "phone",
+                        "linkedin_url",
+                        "github_url",
+                        "updated_at",
+                    ]
+                )
 
-        # Record initial history entry
-        ApplicationHistory.objects.create(
-            application=application,
-            from_status="",
-            to_status=application.status,
-            notes="Application submitted.",
-        )
-        return application
+            try:
+                application, app_created = Application.objects.get_or_create(
+                    candidate=candidate,
+                    job=job,
+                    defaults={"organization": job.organization},
+                )
+            except IntegrityError:
+                application = Application.objects.get(candidate=candidate, job=job)
+                app_created = False
+
+            self.application_created = app_created
+
+            if app_created:
+                ApplicationHistory.objects.create(
+                    application=application,
+                    from_status="",
+                    to_status=application.status,
+                    notes="Application submitted.",
+                )
+
+            return application
+
+
+class PublicApplicationResponseMixin:
+    def get_success_status(self, serializer) -> int:
+        if getattr(serializer, "application_created", True):
+            return 201
+        return 200

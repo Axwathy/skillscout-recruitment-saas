@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
+    "pgvector.django",
     # Internal apps
     "apps.accounts",
     "apps.core",
@@ -198,9 +199,15 @@ CELERY_TASK_DEFAULT_QUEUE = "default"
 # AI / Ollama — settings only. No implementation in Sprint 1.
 # ---------------------------------------------------------------------------
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "qwen2.5-coder:7b")
 LLM_FALLBACK_MODELS = [
-    model.strip() for model in os.getenv("LLM_FALLBACK_MODELS", "mistral,phi3").split(",")
+    model.strip()
+    for model in os.getenv("LLM_FALLBACK_MODELS", "gemma3:4b,mistral,phi3").split(",")
+    if model.strip()
 ]
+OLLAMA_NUM_PREDICT = int(os.getenv("OLLAMA_NUM_PREDICT", "4096"))
+OLLAMA_TIMEOUT_SECONDS = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "120"))
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
 EMBEDDING_DIMENSIONS = int(os.getenv("EMBEDDING_DIMENSIONS", "384"))
+EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", "local_hashing")

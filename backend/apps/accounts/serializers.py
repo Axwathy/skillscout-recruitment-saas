@@ -131,8 +131,8 @@ class RegisterSerializer(serializers.Serializer):
             last_name=validated_data["last_name"],
             organization=org,
             linkedin_profile=validated_data.get("linkedin_profile", ""),
-            verification_status=Recruiter.VerificationStatus.PENDING,
-            is_verified=False,
+            verification_status=Recruiter.VerificationStatus.APPROVED,
+            is_verified=True,
         )
 
         AuditLog.log(action="auth.register", user=user, entity=user)
@@ -198,7 +198,7 @@ class LoginSerializer(serializers.Serializer):
         if not user.is_active:
             raise AuthenticationFailed("User account is disabled.", code="account_disabled")
 
-        # Recruiter-specific access checks (skip for candidates and admins)
+        # Recruiter-specific shape checks (skip for candidates and admins)
         if user.is_recruiter:
             self._validate_recruiter_access(user)
 
@@ -210,41 +210,9 @@ class LoginSerializer(serializers.Serializer):
         if not profile:
             raise AuthenticationFailed("Recruiter profile missing.", code="profile_missing")
 
-        if profile.verification_status == Recruiter.VerificationStatus.PENDING:
-            raise AuthenticationFailed(
-                "Your account is pending approval.",
-                code="recruiter_pending",
-            )
-        if profile.verification_status == Recruiter.VerificationStatus.REJECTED:
-            raise AuthenticationFailed(
-                "Your account access has been denied.",
-                code="recruiter_rejected",
-            )
-        if profile.verification_status == Recruiter.VerificationStatus.SUSPENDED:
-            raise AuthenticationFailed(
-                "Your account has been suspended.",
-                code="recruiter_suspended",
-            )
-
         org = profile.organization
         if not org:
             raise AuthenticationFailed("Organization missing.", code="org_missing")
-
-        if org.approval_status == Organization.ApprovalStatus.PENDING:
-            raise AuthenticationFailed(
-                "Your organization is pending approval.",
-                code="org_pending",
-            )
-        if org.approval_status == Organization.ApprovalStatus.REJECTED:
-            raise AuthenticationFailed(
-                "Your organization access has been denied.",
-                code="org_rejected",
-            )
-        if org.approval_status == Organization.ApprovalStatus.SUSPENDED:
-            raise AuthenticationFailed(
-                "Your organization has been suspended.",
-                code="org_suspended",
-            )
 
 
 class RecruiterStatusUpdateSerializer(serializers.Serializer):

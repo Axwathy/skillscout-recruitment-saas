@@ -1,13 +1,16 @@
 
 import hashlib
 
+from django.conf import settings
+from django.http import HttpResponse
+from django.utils.http import content_disposition_header
 from rest_framework import generics, status, views
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
 from apps.accounts.permissions import IsVerifiedRecruiter
 from apps.core.models import AuditLog
-from apps.core.storage import upload_file
+from apps.core.storage import download_file, upload_file
 
 from .models import Application, Candidate, Resume
 from .serializers import (
@@ -18,19 +21,42 @@ from .serializers import (
     ResumeSerializer,
     ResumeUploadSerializer,
 )
-from .tasks import extract_resume_text
+from .tasks import extract_resume_text, extract_resume_text_from_bytes, parse_resume_with_llm
 
 
 def get_recruiter_organization(request):
     return request.user.recruiter_profile.organization
 
 
-def _dispatch_resume_extraction(resume):
-    try:
-        extract_resume_text.delay(str(resume.id))
-    except Exception:
-        # Upload success should not depend on the local Celery worker/broker being online.
+def _dispatch_resume_extraction(resume, file_bytes: bytes | None = None):
+    if file_bytes and getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
+        extract_resume_text_from_bytes(resume, file_bytes)
         return
+
+    extract_resume_text.delay(str(resume.id))
+
+
+def _get_recruiter_resume_or_404(request, pk):
+    organization = get_recruiter_organization(request)
+    return generics.get_object_or_404(
+        Resume.objects.select_related("candidate", "application"),
+        pk=pk,
+        candidate__organization=organization,
+    )
+
+
+def _resume_file_response(resume, *, as_attachment: bool) -> HttpResponse:
+    file_bytes = download_file("resumes", resume.file_url)
+    response = HttpResponse(
+        file_bytes,
+        content_type=resume.mime_type or "application/octet-stream",
+    )
+    response["Content-Disposition"] = content_disposition_header(
+        as_attachment=as_attachment,
+        filename=resume.file_name,
+    )
+    response["Content-Length"] = str(len(file_bytes))
+    return response
 
 
 class CandidateListView(generics.ListAPIView):
@@ -156,7 +182,7 @@ class ResumeUploadView(views.APIView):
             uploaded_by=request.user,
         )
         
-        _dispatch_resume_extraction(resume)
+        _dispatch_resume_extraction(resume, file_bytes)
         
         return Response(ResumeSerializer(resume).data, status=status.HTTP_201_CREATED)
 class ApplicationListView(generics.ListAPIView):
@@ -197,6 +223,7 @@ class ApplicationDetailView(generics.RetrieveAPIView):
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context["include_resume_download_urls"] = True
+        context["include_parsed_resume"] = True
         return context
 
 
@@ -232,7 +259,107 @@ class ApplicationStatusUpdateView(views.APIView):
             ip_address=request.META.get("REMOTE_ADDR"),
         )
 
-        return Response(ApplicationDetailSerializer(application).data)
+        return Response(
+            ApplicationDetailSerializer(
+                application,
+                context={
+                    "request": request,
+                    "include_resume_download_urls": True,
+                    "include_parsed_resume": True,
+                },
+            ).data
+        )
+
+
+class ResumeReparseView(views.APIView):
+    """
+    POST /api/v1/resumes/<pk>/reparse/
+    Queue manual re-parsing for a resume owned by the recruiter's organization.
+    """
+
+    permission_classes = [IsVerifiedRecruiter]
+
+    def post(self, request, pk, *args, **kwargs):
+        organization = get_recruiter_organization(request)
+        resume = generics.get_object_or_404(
+            Resume.objects.select_related("candidate", "application"),
+            pk=pk,
+            candidate__organization=organization,
+        )
+
+        resume.status = Resume.Status.PROCESSING
+        resume.save(update_fields=["status", "updated_at"])
+
+        response_status = status.HTTP_202_ACCEPTED
+        try:
+            parse_resume_with_llm.delay(str(resume.id))
+        except Exception:
+            # Local development may run without Redis/Celery. Manual re-parse should
+            # still work, so fall back synchronously. If raw text is missing, rebuild
+            # it from the stored resume before parsing.
+            if resume.raw_text:
+                parse_resume_with_llm(str(resume.id))
+            else:
+                extract_resume_text(str(resume.id))
+            resume.refresh_from_db()
+            response_status = status.HTTP_200_OK
+
+        AuditLog.log(
+            action="resume.reparse_requested",
+            user=request.user,
+            entity=resume,
+            ip_address=request.META.get("REMOTE_ADDR"),
+        )
+
+        return Response(
+            ResumeSerializer(
+                resume,
+                context={
+                    "request": request,
+                    "include_download_url": True,
+                    "include_parsed_resume": True,
+                },
+            ).data,
+            status=response_status,
+        )
+
+
+class ResumeViewFileView(views.APIView):
+    """
+    GET /api/v1/resumes/<pk>/view/
+    Stream a resume inline for recruiters in the owning organization.
+    """
+
+    permission_classes = [IsVerifiedRecruiter]
+
+    def get(self, request, pk, *args, **kwargs):
+        resume = _get_recruiter_resume_or_404(request, pk)
+        try:
+            return _resume_file_response(resume, as_attachment=False)
+        except Exception as exc:
+            return Response(
+                {"detail": f"Could not load resume file: {exc}"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+
+class ResumeDownloadFileView(views.APIView):
+    """
+    GET /api/v1/resumes/<pk>/download/
+    Download a resume for recruiters in the owning organization.
+    """
+
+    permission_classes = [IsVerifiedRecruiter]
+
+    def get(self, request, pk, *args, **kwargs):
+        resume = _get_recruiter_resume_or_404(request, pk)
+        try:
+            return _resume_file_response(resume, as_attachment=True)
+        except Exception as exc:
+            return Response(
+                {"detail": f"Could not load resume file: {exc}"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
 
 
 class PipelineBoardView(views.APIView):

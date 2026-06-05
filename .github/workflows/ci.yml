@@ -9,6 +9,20 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: recruitment_test
+          POSTGRES_USER: recruit_user
+          POSTGRES_PASSWORD: changeme
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U recruit_user -d recruitment_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     defaults:
       run:
         working-directory: backend
@@ -25,6 +39,7 @@ jobs:
         env:
           DJANGO_SETTINGS_MODULE: config.settings.dev
           DJANGO_SECRET_KEY: ci-secret
+          DATABASE_URL: postgres://recruit_user:changeme@localhost:5432/recruitment_test
 
   frontend:
     name: Frontend
@@ -42,4 +57,3 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run type-check
-

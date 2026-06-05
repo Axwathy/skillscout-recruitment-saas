@@ -18,11 +18,18 @@ export default function CandidateLayout({ children }: { children: React.ReactNod
   const { user, logout, isLoading, refreshSession } = useAuth();
   const isNonCandidateUser = Boolean(user && user.role !== "candidate");
 
+  const sessionChecked = React.useRef(false);
+
   React.useEffect(() => {
-    if (!user) {
-      refreshSession();
+    if (!user && !sessionChecked.current) {
+      sessionChecked.current = true;
+      refreshSession().then((u) => {
+        if (!u) {
+          router.push("/login");
+        }
+      });
     }
-  }, [refreshSession, user]);
+  }, [refreshSession, user, router]);
 
   React.useEffect(() => {
     if (!isLoading && isNonCandidateUser) {

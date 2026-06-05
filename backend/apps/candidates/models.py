@@ -3,6 +3,8 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
+from pgvector.django import HnswIndex, VectorField
 
 
 class Candidate(models.Model):
@@ -98,6 +100,79 @@ class Resume(models.Model):
         return f"Resume {self.file_name} for {self.candidate}"
 
 
+class ParsedResume(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        PROCESSING = "processing", "Processing"
+        COMPLETED = "completed", "Completed"
+        ERROR = "error", "Error"
+
+    class Confidence(models.TextChoices):
+        HIGH = "high", "High"
+        MEDIUM = "medium", "Medium"
+        LOW = "low", "Low"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    resume = models.OneToOneField(
+        Resume,
+        on_delete=models.CASCADE,
+        related_name="parsed_resume",
+    )
+    candidate = models.ForeignKey(
+        Candidate,
+        on_delete=models.CASCADE,
+        related_name="parsed_resumes",
+    )
+    application = models.ForeignKey(
+        "candidates.Application",
+        on_delete=models.CASCADE,
+        related_name="parsed_resumes",
+        null=True,
+        blank=True,
+    )
+    schema_version = models.PositiveSmallIntegerField(default=1)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
+    )
+    data = models.JSONField(default=dict, blank=True)
+    confidence = models.CharField(
+        max_length=20,
+        choices=Confidence.choices,
+        default=Confidence.LOW,
+    )
+    parser_model = models.CharField(max_length=100, blank=True)
+    validation_errors = models.JSONField(default=list, blank=True)
+    token_usage = models.JSONField(default=dict, blank=True)
+    estimated_cost = models.DecimalField(max_digits=10, decimal_places=6, default=0)
+    parsed_at = models.DateTimeField(null=True, blank=True)
+    embedding = VectorField(dimensions=384, null=True, blank=True)
+    embedding_model = models.CharField(max_length=100, blank=True)
+    embedding_text_hash = models.CharField(max_length=64, blank=True, db_index=True)
+    embedding_generated_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["candidate", "status"]),
+            models.Index(fields=["application", "status"]),
+            HnswIndex(
+                fields=["embedding"],
+                name="parsed_resume_embedding_hnsw",
+                m=16,
+                ef_construction=64,
+                opclasses=["vector_cosine_ops"],
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"Parsed resume for {self.candidate}"
+
+
 
 class Application(models.Model):
     class Status(models.TextChoices):
@@ -132,6 +207,37 @@ class Application(models.Model):
         default=Status.APPLIED,
         db_index=True,
     )
+    semantic_score = models.DecimalField(
+        max_digits=6,
+        decimal_places=5,
+        null=True,
+        blank=True,
+        help_text="Normalized semantic similarity score from 0.0 to 1.0.",
+    )
+    skill_score = models.DecimalField(
+        max_digits=6,
+        decimal_places=5,
+        null=True,
+        blank=True,
+        help_text="Normalized skill match score from 0.0 to 1.0.",
+    )
+    experience_score = models.DecimalField(
+        max_digits=6,
+        decimal_places=5,
+        null=True,
+        blank=True,
+        help_text="Normalized experience match score from 0.0 to 1.0.",
+    )
+    final_score = models.DecimalField(
+        max_digits=6,
+        decimal_places=5,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Weighted normalized candidate ranking score from 0.0 to 1.0.",
+    )
+    score_version = models.CharField(max_length=50, blank=True)
+    score_calculated_at = models.DateTimeField(null=True, blank=True)
     applied_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -146,11 +252,31 @@ class Application(models.Model):
         indexes = [
             models.Index(fields=["organization", "job"]),
             models.Index(fields=["organization", "status"]),
+            models.Index(
+                fields=["organization", "job", "final_score"],
+                name="applications_job_score_idx",
+            ),
             models.Index(fields=["applied_at"]),
         ]
 
     def __str__(self) -> str:
         return f"{self.candidate} -> {self.job}"
+
+    def set_scores(
+        self,
+        *,
+        semantic_score: float,
+        skill_score: float,
+        experience_score: float,
+        final_score: float,
+        score_version: str,
+    ) -> None:
+        self.semantic_score = _score_decimal(semantic_score)
+        self.skill_score = _score_decimal(skill_score)
+        self.experience_score = _score_decimal(experience_score)
+        self.final_score = _score_decimal(final_score)
+        self.score_version = score_version
+        self.score_calculated_at = timezone.now()
 
     def transition_status(self, new_status: str, changed_by=None, notes: str = "") -> None:
         """Change status and record the transition in ApplicationHistory."""
@@ -164,6 +290,11 @@ class Application(models.Model):
             changed_by=changed_by,
             notes=notes,
         )
+
+
+def _score_decimal(value: float) -> str:
+    bounded = min(max(float(value), 0.0), 1.0)
+    return f"{bounded:.5f}"
 
 
 class ApplicationHistory(models.Model):

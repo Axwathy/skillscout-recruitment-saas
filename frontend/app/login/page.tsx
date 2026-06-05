@@ -9,7 +9,7 @@ function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [role, setRole] = useState<"candidate" | "recruiter">("candidate");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -57,26 +57,6 @@ function LoginForm() {
             </p>
           </div>
 
-          <div className="flex rounded-lg border border-neutral-200 p-1 mb-8 bg-neutral-50/50 backdrop-blur-sm">
-            <button
-              type="button"
-              onClick={() => { setRole("candidate"); setError(null); }}
-              className={`flex-1 rounded-md py-2 text-sm font-semibold transition-all duration-200 ${
-                role === "candidate" ? "bg-white text-primary-600 shadow-sm ring-1 ring-neutral-200/50" : "text-neutral-500 hover:text-neutral-900"
-              }`}
-            >
-              Candidate
-            </button>
-            <button
-              type="button"
-              onClick={() => { setRole("recruiter"); setError(null); }}
-              className={`flex-1 rounded-md py-2 text-sm font-semibold transition-all duration-200 ${
-                role === "recruiter" ? "bg-white text-primary-600 shadow-sm ring-1 ring-neutral-200/50" : "text-neutral-500 hover:text-neutral-900"
-              }`}
-            >
-              Recruiter
-            </button>
-          </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (

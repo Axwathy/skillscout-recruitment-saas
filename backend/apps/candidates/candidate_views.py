@@ -3,6 +3,7 @@ Candidate portal views — authenticated as role=CANDIDATE.
 Candidates see only their own applications, linked by email.
 """
 
+from django.conf import settings
 from rest_framework import generics, status, views
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -107,7 +108,7 @@ class CandidateResumeUploadView(views.APIView):
         from apps.core.storage import upload_file
 
         from .serializers import ResumeSerializer, ResumeUploadSerializer
-        from .tasks import extract_resume_text
+        from .tasks import extract_resume_text, extract_resume_text_from_bytes
 
         serializer = ResumeUploadSerializer(
             data=request.data,
@@ -180,9 +181,9 @@ class CandidateResumeUploadView(views.APIView):
             uploaded_by=request.user,
         )
         
-        try:
+        if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
+            extract_resume_text_from_bytes(resume, file_bytes)
+        else:
             extract_resume_text.delay(str(resume.id))
-        except Exception:
-            pass
         
         return Response(ResumeSerializer(resume).data, status=201)

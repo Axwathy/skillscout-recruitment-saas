@@ -2,7 +2,7 @@
 type: overview
 title: "AI Recruitment SaaS — Knowledge Base Overview"
 date_created: 2025-05-22
-date_updated: 2026-05-30
+date_updated: 2026-05-31
 source_count: 1
 tags: [product/strategy, market/trend, ai/llm]
 ---
@@ -79,7 +79,9 @@ The product now has a filed UI/UX foundation: [[Lumina Nexus UI UX Foundation]].
 - Sprint 1 is complete: foundation and developer workflow are in place via [[Sprint 1 Foundation Implementation]].
 - Sprint 2 is complete: recruiter/admin authentication, organization approval, and RBAC are in place.
 - Sprint 2.1 is complete: auth hardening is implemented via [[Sprint 2.1 Auth Hardening Plan]].
-- Sprint 3 is next/current: [[Sprint 3 Jobs and Applications Foundation]] starts the product workflow with Jobs, Applications, and candidate records, without AI, resume parsing, embeddings, scoring, or a candidate portal.
+- Sprint 3 established the product workflow through Jobs, Applications, and candidate records via [[Sprint 3 Jobs and Applications Foundation]].
+- Sprint 6 is complete: [[Sprint 6 Resume Parsing Implementation]] adds the resume parsing foundation with text extraction handoff, Pydantic-validated structured JSON, manual re-parsing, confidence metadata, and parsed-profile display in recruiter/candidate application views.
+- The current development LLM provider is [[LLM Provider Architecture|Ollama Cloud]] using `gpt-oss:20b`; local Ollama is installed but has no local models yet, so `qwen2.5-coder:7b` remains a future local option.
 
 Open strategic decisions remain: target segment, pricing model, integration strategy, and the first agentic workflow to automate.
 

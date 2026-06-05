@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  BarChart3,
   Download,
   ExternalLink,
   FileText,
@@ -15,9 +16,12 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-import { ResumeUpload } from "@/components/ResumeUpload";
-import { getApplication } from "@/lib/applications";
+import { ParsedResumePanel } from "@/components/ParsedResumePanel";
+import { getApplication, getResumeFile, reparseResume } from "@/lib/applications";
 import { updateApplicationStatus } from "@/lib/candidate";
+import { getRankedCandidates } from "@/lib/jobs";
+import { formatScore, scoreBarColor, scorePercent, scoreTone } from "@/lib/scores";
+import type { Resume } from "@/types/candidate";
 import type { Application, ApplicationStatus } from "@/types/jobs";
 
 const STATUS_OPTIONS: { value: ApplicationStatus; label: string }[] = [
@@ -31,6 +35,13 @@ const STATUS_OPTIONS: { value: ApplicationStatus; label: string }[] = [
   { value: "rejected", label: "Rejected" },
 ];
 
+const RESUME_STATUS_CLASSES: Record<string, string> = {
+  pending: "bg-neutral-100 text-neutral-600",
+  processing: "bg-warning-600/10 text-warning-600",
+  completed: "bg-success-600/10 text-success-600",
+  error: "bg-danger-600/10 text-danger-600",
+};
+
 function formatDate(v: string) {
   return new Intl.DateTimeFormat("en", {
     month: "short",
@@ -39,6 +50,24 @@ function formatDate(v: string) {
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(v));
+}
+
+function ScoreRow({ label, value }: { label: string; value: Application["final_score"] }) {
+  const percent = scorePercent(value);
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="text-neutral-600">{label}</span>
+        <span className="font-semibold text-neutral-900">{formatScore(value)}</span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
+        <div
+          className={`h-full rounded-full ${scoreBarColor(value)}`}
+          style={{ width: `${percent ?? 0}%` }}
+        />
+      </div>
+    </div>
+  );
 }
 
 export default function ApplicationDetailPage() {
@@ -51,6 +80,9 @@ export default function ApplicationDetailPage() {
 
   // Status update state
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isScoring, setIsScoring] = useState(false);
+  const [reparsingResumeId, setReparsingResumeId] = useState<string | null>(null);
+  const [activeResumeAction, setActiveResumeAction] = useState<string | null>(null);
   const [newStatus, setNewStatus] = useState<ApplicationStatus>("applied");
   const [updateNotes, setUpdateNotes] = useState("");
   const [showUpdateForm, setShowUpdateForm] = useState(false);
@@ -82,6 +114,72 @@ export default function ApplicationDetailPage() {
       alert("Failed to update status.");
     } finally {
       setIsUpdating(false);
+    }
+  }
+
+  async function handleReparse(resumeId: string) {
+    setReparsingResumeId(resumeId);
+    try {
+      await reparseResume(resumeId);
+      const refreshed = await getApplication(params.id);
+      setApp(refreshed);
+    } catch {
+      alert("Failed to queue resume parsing.");
+    } finally {
+      setReparsingResumeId(null);
+    }
+  }
+
+  async function handleRefreshScores() {
+    if (!app) return;
+    setIsScoring(true);
+    try {
+      await getRankedCandidates(app.job_id, { force: true });
+      const refreshed = await getApplication(app.id);
+      setApp(refreshed);
+    } catch {
+      alert("Failed to calculate scores.");
+    } finally {
+      setIsScoring(false);
+    }
+  }
+
+  async function handleResumeFile(resume: Resume, mode: "view" | "download") {
+    const url = mode === "view" ? resume.view_url : resume.download_url;
+    if (!url) return;
+
+    const actionKey = `${resume.id}:${mode}`;
+    const previewWindow = mode === "view" ? window.open("about:blank", "_blank") : null;
+    if (previewWindow) {
+      previewWindow.opener = null;
+    }
+    setActiveResumeAction(actionKey);
+
+    try {
+      const blob = await getResumeFile(url);
+      const objectUrl = URL.createObjectURL(blob);
+
+      if (mode === "view") {
+        if (previewWindow) {
+          previewWindow.location.href = objectUrl;
+        } else {
+          window.open(objectUrl, "_blank", "noopener,noreferrer");
+        }
+      } else {
+        const anchor = document.createElement("a");
+        anchor.href = objectUrl;
+        anchor.download = resume.file_name;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+      }
+
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    } catch {
+      previewWindow?.close();
+      alert(`Failed to ${mode} resume.`);
+    } finally {
+      setActiveResumeAction(null);
     }
   }
 
@@ -214,6 +312,54 @@ export default function ApplicationDetailPage() {
 
         {/* Right Column (Actions) */}
         <div className="space-y-6">
+          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-panel">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-base font-semibold text-neutral-900">Match score</h2>
+                <p className="mt-1 text-xs text-neutral-500">
+                  Hybrid ranking: semantic, skill, and experience fit.
+                </p>
+              </div>
+              <span
+                className={`inline-flex h-10 min-w-14 items-center justify-center rounded-full px-3 text-sm font-bold ${scoreTone(app.final_score)}`}
+              >
+                {formatScore(app.final_score)}
+              </span>
+            </div>
+
+            {app.final_score === null || app.final_score === undefined ? (
+              <p className="mt-4 rounded-md bg-neutral-50 px-3 py-2 text-sm text-neutral-500">
+                No score calculated yet. Refresh scores to rank this job's candidates.
+              </p>
+            ) : (
+              <div className="mt-5 space-y-4">
+                <ScoreRow label="Overall score" value={app.final_score} />
+                <ScoreRow label="Semantic match" value={app.semantic_score} />
+                <ScoreRow label="Skill match" value={app.skill_score} />
+                <ScoreRow label="Experience match" value={app.experience_score} />
+                {app.score_calculated_at && (
+                  <p className="text-xs text-neutral-400">
+                    Calculated {formatDate(app.score_calculated_at)}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleRefreshScores}
+              disabled={isScoring}
+              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-60"
+            >
+              {isScoring ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <BarChart3 className="h-4 w-4" />
+              )}
+              {isScoring ? "Calculating..." : "Refresh scores"}
+            </button>
+          </div>
+
           <div className="rounded-xl border border-neutral-200 bg-white shadow-panel p-6 space-y-4">
             <h2 className="text-base font-semibold text-neutral-900">Resume</h2>
             {app.resumes && app.resumes.length > 0 ? (
@@ -226,38 +372,63 @@ export default function ApplicationDetailPage() {
                     <div className="flex items-start gap-3">
                       <FileText className="mt-0.5 h-4 w-4 text-neutral-500" />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-neutral-900">
-                          {resume.file_name}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate text-sm font-medium text-neutral-900">
+                            {resume.file_name}
+                          </p>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs font-semibold ${RESUME_STATUS_CLASSES[resume.status]}`}
+                          >
+                            {resume.status}
+                          </span>
+                        </div>
                         <p className="text-xs text-neutral-500">
                           {(resume.file_size / 1024 / 1024).toFixed(2)} MB
                         </p>
                       </div>
                     </div>
-                    {resume.download_url && (
-                      <a
-                        href={resume.download_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 ring-1 ring-inset ring-neutral-200 hover:bg-neutral-100"
-                      >
-                        <Download className="h-4 w-4" />
-                        Download
-                      </a>
+                    {(resume.view_url || resume.download_url) && (
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleResumeFile(resume, "view")}
+                          disabled={!resume.view_url || activeResumeAction === `${resume.id}:view`}
+                          className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 ring-1 ring-inset ring-neutral-200 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          {activeResumeAction === `${resume.id}:view` ? "Opening..." : "View"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleResumeFile(resume, "download")}
+                          disabled={!resume.download_url || activeResumeAction === `${resume.id}:download`}
+                          className="inline-flex items-center justify-center gap-2 rounded-md bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 ring-1 ring-inset ring-neutral-200 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <Download className="h-4 w-4" />
+                          {activeResumeAction === `${resume.id}:download` ? "Downloading..." : "Download"}
+                        </button>
+                      </div>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => handleReparse(resume.id)}
+                      disabled={reparsingResumeId === resume.id}
+                      className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-200 disabled:opacity-60"
+                    >
+                      {reparsingResumeId === resume.id && (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      )}
+                      Re-parse
+                    </button>
+                    <div className="mt-3">
+                      <ParsedResumePanel parsedResume={resume.parsed_resume} />
+                    </div>
                   </li>
                 ))}
               </ul>
             ) : (
               <p className="text-sm text-neutral-500">No resume uploaded yet.</p>
             )}
-            <ResumeUpload
-              candidateId={app.candidate.id}
-              applicationId={app.id}
-              onUploadSuccess={() => {
-                getApplication(params.id).then(setApp);
-              }}
-            />
           </div>
 
           <div className="rounded-xl border border-neutral-200 bg-white shadow-panel p-6 space-y-4">

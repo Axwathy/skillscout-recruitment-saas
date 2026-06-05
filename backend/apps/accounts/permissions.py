@@ -39,9 +39,13 @@ class IsInterviewer(permissions.BasePermission):
 
 class IsVerifiedRecruiter(permissions.BasePermission):
     """
-    Allows access only to recruiters whose organization AND recruiter profile
-    are fully approved by an admin.
+    Allows access only to recruiter users with a recruiter profile and organization.
+
+    The historical class name is kept to avoid touching every recruiter endpoint while
+    the approval workflow is dormant.
     """
+
+    message = "Only recruiter accounts can access this recruiter workspace."
 
     def has_permission(self, request, view):
         user = request.user
@@ -52,10 +56,7 @@ class IsVerifiedRecruiter(permissions.BasePermission):
             return False
 
         profile = user.recruiter_profile
-        if not profile.is_approved:
-            return False
-
-        if not profile.organization or not profile.organization.is_approved:
+        if not profile.organization:
             return False
 
         return True

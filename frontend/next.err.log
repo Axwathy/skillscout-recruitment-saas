@@ -1,7 +1,3 @@
 ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
-[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior (file://C:/development/AI recruitment SaaS/frontend/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2477:13)
-[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior (file://C:/development/AI recruitment SaaS/frontend/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2477:13)
-⚠ Fast Refresh had to perform a full reload when ./contexts/auth-context.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
-⚠ Fast Refresh had to perform a full reload when ./contexts/auth-context.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
-⚠ Fast Refresh had to perform a full reload when ./lib/api/client.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
-⚠ Fast Refresh had to perform a full reload when ./lib/api/client.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./lib/api.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./lib/api.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload

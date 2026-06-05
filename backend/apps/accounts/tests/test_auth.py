@@ -66,10 +66,13 @@ def test_registration_creates_user_organization_and_recruiter_profile(api_client
     response = api_client.post(reverse("auth-register"), register_payload(), format="json")
 
     assert response.status_code == 201
+    assert response.cookies["access"]["httponly"]
+    assert response.cookies["refresh"]["httponly"]
     user = User.objects.get(email="asha@example.com")
     recruiter = user.recruiter_profile
     assert user.role == User.Role.RECRUITER
-    assert recruiter.verification_status == Recruiter.VerificationStatus.PENDING
+    assert recruiter.verification_status == Recruiter.VerificationStatus.APPROVED
+    assert recruiter.is_verified is True
     assert recruiter.organization.name == "Nexus Talent"
 
 
@@ -93,7 +96,7 @@ def test_registration_requires_matching_password_confirmation(api_client):
     assert "confirm_password" in response.json()
 
 
-def test_pending_recruiter_cannot_log_in(api_client):
+def test_pending_recruiter_can_log_in_while_approval_workflow_is_dormant(api_client):
     create_recruiter(recruiter_status=Recruiter.VerificationStatus.PENDING)
 
     response = api_client.post(
@@ -102,8 +105,9 @@ def test_pending_recruiter_cannot_log_in(api_client):
         format="json",
     )
 
-    assert response.status_code in {401, 403}
-    assert "pending approval" in response.json()["detail"]
+    assert response.status_code == 200
+    assert response.cookies["access"]["httponly"]
+    assert response.cookies["refresh"]["httponly"]
 
 
 def test_approved_recruiter_can_log_in_and_receives_cookies(api_client):

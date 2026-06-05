@@ -50,15 +50,12 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        
+
         refresh = RefreshToken.for_user(user)
         access = str(refresh.access_token)
         refresh_token = str(refresh)
 
-        response = Response(
-            {"detail": "Account created successfully."},
-            status=status.HTTP_201_CREATED,
-        )
+        response = Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
         _set_auth_cookies(response, access, refresh_token)
         return response
 

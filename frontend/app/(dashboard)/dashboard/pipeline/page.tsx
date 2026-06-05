@@ -6,6 +6,7 @@ import { ChevronRight, RefreshCw } from "lucide-react";
 
 import { getPipelineBoard } from "@/lib/candidate";
 import { getJobs } from "@/lib/jobs";
+import { formatScore, scoreTone } from "@/lib/scores";
 import type { PipelineBoard, PipelineColumn, CandidateApplication } from "@/types/candidate";
 import type { Job } from "@/types/jobs";
 
@@ -29,6 +30,8 @@ function formatDate(v: string) {
 // ─── Card component ───────────────────────────────────────────────────────────
 
 function PipelineCard({ app, style }: { app: CandidateApplication; style: typeof COLUMN_STYLE[string] }) {
+  const hasScore = app.final_score !== null && app.final_score !== undefined;
+
   return (
     <Link
       href={`/dashboard/applications/${app.id}`}
@@ -44,7 +47,15 @@ function PipelineCard({ app, style }: { app: CandidateApplication; style: typeof
         <ChevronRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-neutral-300" aria-hidden="true" />
       </div>
       <p className="mt-2 text-xs text-neutral-400">{app.candidate.email}</p>
-      <p className="mt-1 text-xs text-neutral-400">Applied {formatDate(app.applied_at)}</p>
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <p className="text-xs text-neutral-400">Applied {formatDate(app.applied_at)}</p>
+        <span
+          className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-semibold ${scoreTone(app.final_score)}`}
+          title={hasScore ? "Overall match score" : "Score not calculated yet"}
+        >
+          {hasScore ? `${formatScore(app.final_score)} match` : "No score"}
+        </span>
+      </div>
     </Link>
   );
 }

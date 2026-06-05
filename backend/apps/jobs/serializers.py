@@ -5,6 +5,7 @@ from .models import Job
 
 class JobSerializer(serializers.ModelSerializer):
     application_count = serializers.SerializerMethodField()
+    has_embedding = serializers.SerializerMethodField()
     organization = serializers.UUIDField(source="organization_id", read_only=True)
     created_by = serializers.UUIDField(source="created_by_id", read_only=True)
 
@@ -25,6 +26,9 @@ class JobSerializer(serializers.ModelSerializer):
             "status",
             "created_by",
             "application_count",
+            "has_embedding",
+            "embedding_model",
+            "embedding_generated_at",
             "published_at",
             "created_at",
             "updated_at",
@@ -35,6 +39,9 @@ class JobSerializer(serializers.ModelSerializer):
             "slug",
             "created_by",
             "application_count",
+            "has_embedding",
+            "embedding_model",
+            "embedding_generated_at",
             "published_at",
             "created_at",
             "updated_at",
@@ -53,6 +60,9 @@ class JobSerializer(serializers.ModelSerializer):
         if obj.pk:
             return obj.applications.count()
         return 0
+
+    def get_has_embedding(self, obj) -> bool:
+        return obj.embedding is not None
 
     def _validate_publishable(self, attrs):
         instance = self.instance

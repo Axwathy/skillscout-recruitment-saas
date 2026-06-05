@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, CheckCircle2, Circle, FileText, XCircle } from "lucide-react";
 
-import { ResumeUpload } from "@/components/ResumeUpload";
 import { getCandidateApplication } from "@/lib/candidate";
 import type { CandidateApplication } from "@/types/candidate";
 import type { ApplicationStatus } from "@/types/jobs";
@@ -220,32 +219,27 @@ export default function CandidateApplicationDetailPage() {
             {app.resumes.map((resume) => (
               <li
                 key={resume.id}
-                className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-neutral-50 p-3"
+                className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50 p-3"
               >
-                <FileText className="h-4 w-4 text-neutral-500" />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-neutral-900">
-                    {resume.file_name}
-                  </p>
-                  <p className="text-xs text-neutral-500">
-                    {(resume.file_size / 1024 / 1024).toFixed(2)} MB
-                  </p>
+                <div className="flex items-center gap-3">
+                  <FileText className="h-4 w-4 text-neutral-500" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-neutral-900">
+                      {resume.file_name}
+                    </p>
+                    <p className="text-xs text-neutral-500">
+                      {(resume.file_size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
                 </div>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="mt-2 text-sm text-neutral-500">No resume uploaded yet.</p>
+          <p className="mt-2 text-sm text-neutral-500">
+            No resume was submitted with this application.
+          </p>
         )}
-        <div className="mt-4">
-          <ResumeUpload
-            applicationId={app.id}
-            isCandidateMode={true}
-            onUploadSuccess={() => {
-              getCandidateApplication(params.id).then(setApp);
-            }}
-          />
-        </div>
       </section>
 
       {/* Timeline */}

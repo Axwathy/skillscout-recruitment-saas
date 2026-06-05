@@ -6,7 +6,8 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from apps.accounts.models import Recruiter, User
-from apps.candidates.models import Application, ApplicationHistory, Candidate, Resume
+from apps.candidates.models import Application, ApplicationHistory, Candidate, ParsedResume, Resume
+from apps.candidates.resume_parser import ParseResult
 from apps.jobs.models import Job
 from apps.organizations.models import Organization
 
@@ -149,6 +150,43 @@ def test_candidate_application_detail_includes_history(api_client):
     assert data["history"][0]["to_status"] == "applied"
 
 
+def test_candidate_application_detail_hides_parsed_resume_data(api_client):
+    recruiter, org = create_recruiter()
+    job = create_job(org, recruiter)
+    application = create_application(org, job, email="alice@example.com")
+    resume = Resume.objects.create(
+        candidate=application.candidate,
+        application=application,
+        file_url=f"{org.id}/{application.candidate_id}/resume.pdf",
+        file_name="resume.pdf",
+        file_size=123,
+        mime_type="application/pdf",
+        file_hash="abc",
+        uploaded_by=recruiter,
+        status=Resume.Status.COMPLETED,
+    )
+    ParsedResume.objects.create(
+        resume=resume,
+        candidate=application.candidate,
+        application=application,
+        status=ParsedResume.Status.COMPLETED,
+        confidence=ParsedResume.Confidence.HIGH,
+        parser_model="gpt-oss:20b",
+        data={
+            "personal_info": {"full_name": "Alice Smith"},
+            "skills": [{"name": "Python", "proficiency": "advanced"}],
+        },
+    )
+
+    candidate_user = create_candidate_user("alice@example.com")
+    api_client.force_authenticate(user=candidate_user)
+
+    response = api_client.get(reverse("candidate-application-detail", args=[application.id]))
+
+    assert response.status_code == 200
+    assert response.json()["resumes"][0]["parsed_resume"] is None
+
+
 def test_candidate_uploads_resume_linked_to_application(api_client):
     recruiter, org = create_recruiter()
     job = create_job(org, recruiter)
@@ -159,7 +197,7 @@ def test_candidate_uploads_resume_linked_to_application(api_client):
 
     with (
         patch("apps.core.storage.upload_file", return_value="path") as upload,
-        patch("apps.candidates.tasks.extract_resume_text") as task,
+        patch("apps.candidates.tasks.extract_resume_text_from_bytes") as extract,
     ):
         response = api_client.post(
             reverse("candidate-resume-upload"),
@@ -172,7 +210,7 @@ def test_candidate_uploads_resume_linked_to_application(api_client):
     assert resume.application == application
     assert resume.candidate == application.candidate
     upload.assert_called_once()
-    task.delay.assert_called_once_with(str(resume.id))
+    extract.assert_called_once()
 
 
 def test_candidate_resume_upload_rejects_other_candidate_application(api_client):
@@ -199,7 +237,7 @@ def test_recruiter_cannot_access_candidate_portal(api_client):
     assert response.status_code == 403
 
 
-def test_recruiter_application_detail_includes_signed_resume_url(api_client):
+def test_recruiter_application_detail_includes_resume_file_urls(api_client):
     recruiter, org = create_recruiter()
     job = create_job(org, recruiter)
     application = create_application(org, job)
@@ -215,16 +253,150 @@ def test_recruiter_application_detail_includes_signed_resume_url(api_client):
     )
     api_client.force_authenticate(user=recruiter)
 
-    with patch(
-        "apps.candidates.serializers.get_signed_url",
-        return_value="https://signed.example/resume.pdf",
-    ):
-        response = api_client.get(reverse("application-detail", args=[application.id]))
+    response = api_client.get(reverse("application-detail", args=[application.id]))
 
     assert response.status_code == 200
     resumes = response.json()["resumes"]
     assert resumes[0]["application"] == str(application.id)
-    assert resumes[0]["download_url"] == "https://signed.example/resume.pdf"
+    assert resumes[0]["view_url"] == reverse("resume-view", args=[resumes[0]["id"]])
+    assert resumes[0]["download_url"] == reverse("resume-download", args=[resumes[0]["id"]])
+
+
+def test_recruiter_can_upload_resume_with_application_id_only(api_client):
+    recruiter, org = create_recruiter()
+    job = create_job(org, recruiter)
+    application = create_application(org, job)
+    api_client.force_authenticate(user=recruiter)
+
+    with (
+        patch("apps.candidates.views.upload_file", return_value="path") as upload,
+        patch("apps.candidates.views.extract_resume_text_from_bytes") as extract,
+    ):
+        response = api_client.post(
+            reverse("resume-upload"),
+            {"application_id": str(application.id), "file": resume_file()},
+            format="multipart",
+        )
+
+    assert response.status_code == 201
+    resume = Resume.objects.get(id=response.json()["id"])
+    assert resume.application == application
+    assert resume.candidate == application.candidate
+    upload.assert_called_once()
+    extract.assert_called_once()
+
+
+def test_recruiter_can_view_resume_file_inline(api_client):
+    recruiter, org = create_recruiter()
+    job = create_job(org, recruiter)
+    application = create_application(org, job)
+    resume = Resume.objects.create(
+        candidate=application.candidate,
+        application=application,
+        file_url=f"{org.id}/{application.candidate_id}/resume.pdf",
+        file_name="resume.pdf",
+        file_size=123,
+        mime_type="application/pdf",
+        file_hash="abc",
+        uploaded_by=recruiter,
+    )
+    api_client.force_authenticate(user=recruiter)
+
+    with patch("apps.candidates.views.download_file", return_value=b"%PDF-1.4"):
+        response = api_client.get(reverse("resume-view", args=[resume.id]))
+
+    assert response.status_code == 200
+    assert response.content == b"%PDF-1.4"
+    assert response["Content-Type"] == "application/pdf"
+    assert response["Content-Disposition"] == 'inline; filename="resume.pdf"'
+
+
+def test_recruiter_can_download_resume_file(api_client):
+    recruiter, org = create_recruiter()
+    job = create_job(org, recruiter)
+    application = create_application(org, job)
+    resume = Resume.objects.create(
+        candidate=application.candidate,
+        application=application,
+        file_url=f"{org.id}/{application.candidate_id}/resume.pdf",
+        file_name="resume.pdf",
+        file_size=123,
+        mime_type="application/pdf",
+        file_hash="abc",
+        uploaded_by=recruiter,
+    )
+    api_client.force_authenticate(user=recruiter)
+
+    with patch("apps.candidates.views.download_file", return_value=b"%PDF-1.4"):
+        response = api_client.get(reverse("resume-download", args=[resume.id]))
+
+    assert response.status_code == 200
+    assert response.content == b"%PDF-1.4"
+    assert response["Content-Disposition"] == 'attachment; filename="resume.pdf"'
+
+
+def test_resume_file_access_is_tenant_scoped(api_client):
+    recruiter_a, org_a = create_recruiter("a@example.com")
+    recruiter_b, _org_b = create_recruiter("b@example.com")
+    job_a = create_job(org_a, recruiter_a)
+    application_a = create_application(org_a, job_a)
+    resume = Resume.objects.create(
+        candidate=application_a.candidate,
+        application=application_a,
+        file_url=f"{org_a.id}/{application_a.candidate_id}/resume.pdf",
+        file_name="resume.pdf",
+        file_size=123,
+        mime_type="application/pdf",
+        file_hash="abc",
+        uploaded_by=recruiter_a,
+    )
+    api_client.force_authenticate(user=recruiter_b)
+
+    with patch("apps.candidates.views.download_file") as storage_download:
+        response = api_client.get(reverse("resume-download", args=[resume.id]))
+
+    assert response.status_code == 404
+    storage_download.assert_not_called()
+
+
+def test_application_detail_includes_parsed_resume_data(api_client):
+    recruiter, org = create_recruiter()
+    job = create_job(org, recruiter)
+    application = create_application(org, job)
+    resume = Resume.objects.create(
+        candidate=application.candidate,
+        application=application,
+        file_url=f"{org.id}/{application.candidate_id}/resume.pdf",
+        file_name="resume.pdf",
+        file_size=123,
+        mime_type="application/pdf",
+        file_hash="abc",
+        uploaded_by=recruiter,
+        status=Resume.Status.COMPLETED,
+    )
+    ParsedResume.objects.create(
+        resume=resume,
+        candidate=application.candidate,
+        application=application,
+        status=ParsedResume.Status.COMPLETED,
+        confidence=ParsedResume.Confidence.HIGH,
+        parser_model="qwen2.5-coder:7b",
+        data={
+            "personal_info": {"full_name": "Alice Smith"},
+            "skills": [{"name": "Python", "proficiency": "advanced"}],
+            "experience": [],
+            "education": [],
+            "_metadata": {"parsing_confidence": "high", "parsing_notes": []},
+        },
+    )
+    api_client.force_authenticate(user=recruiter)
+
+    response = api_client.get(reverse("application-detail", args=[application.id]))
+
+    assert response.status_code == 200
+    parsed = response.json()["resumes"][0]["parsed_resume"]
+    assert parsed["status"] == "completed"
+    assert parsed["data"]["skills"][0]["name"] == "Python"
 
 
 def test_recruiter_resume_upload_enforces_org_application_isolation(api_client):
@@ -275,6 +447,191 @@ def test_resume_upload_rejects_non_pdf_doc_files(api_client):
     assert not Resume.objects.exists()
 
 
+def test_recruiter_can_queue_resume_reparse(api_client):
+    recruiter, org = create_recruiter()
+    job = create_job(org, recruiter)
+    application = create_application(org, job)
+    resume = Resume.objects.create(
+        candidate=application.candidate,
+        application=application,
+        file_url=f"{org.id}/{application.candidate_id}/resume.pdf",
+        file_name="resume.pdf",
+        file_size=123,
+        mime_type="application/pdf",
+        file_hash="abc",
+        raw_text="Alice Smith\nPython Django",
+        uploaded_by=recruiter,
+        status=Resume.Status.COMPLETED,
+    )
+    api_client.force_authenticate(user=recruiter)
+
+    with patch("apps.candidates.views.parse_resume_with_llm") as task:
+        response = api_client.post(reverse("resume-reparse", args=[resume.id]))
+
+    assert response.status_code == 202
+    resume.refresh_from_db()
+    assert resume.status == Resume.Status.PROCESSING
+    task.delay.assert_called_once_with(str(resume.id))
+
+
+def test_resume_reparse_response_includes_recruiter_resume_context(api_client):
+    recruiter, org = create_recruiter()
+    job = create_job(org, recruiter)
+    application = create_application(org, job)
+    resume = Resume.objects.create(
+        candidate=application.candidate,
+        application=application,
+        file_url=f"{org.id}/{application.candidate_id}/resume.pdf",
+        file_name="resume.pdf",
+        file_size=123,
+        mime_type="application/pdf",
+        file_hash="abc",
+        raw_text="Alice Smith\nPython Django",
+        uploaded_by=recruiter,
+        status=Resume.Status.COMPLETED,
+    )
+    ParsedResume.objects.create(
+        resume=resume,
+        candidate=application.candidate,
+        application=application,
+        status=ParsedResume.Status.COMPLETED,
+        confidence=ParsedResume.Confidence.HIGH,
+        parser_model="gpt-oss:20b",
+        data={"skills": [{"name": "Python"}]},
+    )
+    api_client.force_authenticate(user=recruiter)
+
+    with patch("apps.candidates.views.parse_resume_with_llm") as task:
+        response = api_client.post(reverse("resume-reparse", args=[resume.id]))
+
+    assert response.status_code == 202
+    data = response.json()
+    assert data["view_url"] == reverse("resume-view", args=[resume.id])
+    assert data["download_url"] == reverse("resume-download", args=[resume.id])
+    assert data["parsed_resume"]["parser_model"] == "gpt-oss:20b"
+    task.delay.assert_called_once_with(str(resume.id))
+
+
+def test_resume_reparse_runs_inline_when_queue_unavailable(api_client):
+    recruiter, org = create_recruiter()
+    job = create_job(org, recruiter)
+    application = create_application(org, job)
+    resume = Resume.objects.create(
+        candidate=application.candidate,
+        application=application,
+        file_url=f"{org.id}/{application.candidate_id}/resume.pdf",
+        file_name="resume.pdf",
+        file_size=123,
+        mime_type="application/pdf",
+        file_hash="abc",
+        raw_text="Alice Smith\nPython Django",
+        uploaded_by=recruiter,
+        status=Resume.Status.COMPLETED,
+    )
+    api_client.force_authenticate(user=recruiter)
+
+    with patch("apps.candidates.views.parse_resume_with_llm") as task:
+        task.delay.side_effect = RuntimeError
+        response = api_client.post(reverse("resume-reparse", args=[resume.id]))
+
+    assert response.status_code == 200
+    task.assert_called_once_with(str(resume.id))
+
+
+def test_resume_reparse_extracts_text_when_raw_text_is_missing(api_client):
+    recruiter, org = create_recruiter()
+    job = create_job(org, recruiter)
+    application = create_application(org, job)
+    resume = Resume.objects.create(
+        candidate=application.candidate,
+        application=application,
+        file_url=f"{org.id}/{application.candidate_id}/resume.pdf",
+        file_name="resume.pdf",
+        file_size=123,
+        mime_type="application/pdf",
+        file_hash="abc",
+        raw_text="",
+        uploaded_by=recruiter,
+        status=Resume.Status.ERROR,
+    )
+    api_client.force_authenticate(user=recruiter)
+
+    with (
+        patch("apps.candidates.views.parse_resume_with_llm") as parse_task,
+        patch("apps.candidates.views.extract_resume_text") as extract_task,
+    ):
+        parse_task.delay.side_effect = RuntimeError
+        response = api_client.post(reverse("resume-reparse", args=[resume.id]))
+
+    assert response.status_code == 200
+    extract_task.assert_called_once_with(str(resume.id))
+    parse_task.assert_not_called()
+
+
+def test_resume_reparse_is_tenant_scoped(api_client):
+    recruiter_a, org_a = create_recruiter("a@example.com")
+    recruiter_b, _org_b = create_recruiter("b@example.com")
+    job_a = create_job(org_a, recruiter_a)
+    application_a = create_application(org_a, job_a)
+    resume = Resume.objects.create(
+        candidate=application_a.candidate,
+        application=application_a,
+        file_url=f"{org_a.id}/{application_a.candidate_id}/resume.pdf",
+        file_name="resume.pdf",
+        file_size=123,
+        mime_type="application/pdf",
+        file_hash="abc",
+        uploaded_by=recruiter_a,
+    )
+    api_client.force_authenticate(user=recruiter_b)
+
+    response = api_client.post(reverse("resume-reparse", args=[resume.id]))
+
+    assert response.status_code == 404
+
+
+def test_parse_resume_task_stores_structured_data(api_client):
+    recruiter, org = create_recruiter()
+    job = create_job(org, recruiter)
+    application = create_application(org, job)
+    resume = Resume.objects.create(
+        candidate=application.candidate,
+        application=application,
+        file_url=f"{org.id}/{application.candidate_id}/resume.pdf",
+        file_name="resume.pdf",
+        file_size=123,
+        mime_type="application/pdf",
+        file_hash="abc",
+        raw_text="Alice Smith\nPython Django",
+        uploaded_by=recruiter,
+    )
+
+    with patch(
+        "apps.candidates.tasks.parse_resume_text",
+        return_value=ParseResult(
+            data={
+                "personal_info": {"full_name": "Alice Smith"},
+                "skills": [{"name": "Python", "proficiency": "advanced"}],
+                "experience": [],
+                "education": [],
+                "_metadata": {"parsing_confidence": "high", "parsing_notes": []},
+            },
+            confidence="high",
+            model="qwen2.5-coder:7b",
+            token_usage={"eval_count": 42},
+        ),
+    ):
+        from apps.candidates.tasks import parse_resume_with_llm
+
+        parse_resume_with_llm(str(resume.id))
+
+    resume.refresh_from_db()
+    parsed = ParsedResume.objects.get(resume=resume)
+    assert resume.status == Resume.Status.COMPLETED
+    assert parsed.status == ParsedResume.Status.COMPLETED
+    assert parsed.data["skills"][0]["name"] == "Python"
+
+
 # ─── Recruiter — Application Status Update ───────────────────────────────────
 
 def test_recruiter_can_update_application_status(api_client):
@@ -291,6 +648,45 @@ def test_recruiter_can_update_application_status(api_client):
     assert response.status_code == 200
     application.refresh_from_db()
     assert application.status == Application.Status.UNDER_REVIEW
+
+
+def test_status_update_response_preserves_resume_context(api_client):
+    recruiter, org = create_recruiter()
+    job = create_job(org, recruiter)
+    application = create_application(org, job)
+    resume = Resume.objects.create(
+        candidate=application.candidate,
+        application=application,
+        file_url=f"{org.id}/{application.candidate_id}/resume.pdf",
+        file_name="resume.pdf",
+        file_size=123,
+        mime_type="application/pdf",
+        file_hash="abc",
+        uploaded_by=recruiter,
+        status=Resume.Status.COMPLETED,
+    )
+    ParsedResume.objects.create(
+        resume=resume,
+        candidate=application.candidate,
+        application=application,
+        status=ParsedResume.Status.COMPLETED,
+        confidence=ParsedResume.Confidence.HIGH,
+        parser_model="gpt-oss:20b",
+        data={"skills": [{"name": "Python"}]},
+    )
+    api_client.force_authenticate(user=recruiter)
+
+    response = api_client.patch(
+        reverse("application-status-update", args=[application.id]),
+        {"status": "under_review", "notes": "Looks good."},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    resume_data = response.json()["resumes"][0]
+    assert resume_data["view_url"] == reverse("resume-view", args=[resume.id])
+    assert resume_data["download_url"] == reverse("resume-download", args=[resume.id])
+    assert resume_data["parsed_resume"]["parser_model"] == "gpt-oss:20b"
 
 
 def test_status_update_creates_history_entry(api_client):
