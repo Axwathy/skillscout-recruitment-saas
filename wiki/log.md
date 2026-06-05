@@ -2,13 +2,29 @@
 type: log
 title: "Activity Log"
 date_created: 2025-05-22
-date_updated: 2026-05-30
+date_updated: 2026-05-31
 tags: [wiki/log]
 ---
 
 # Activity Log
 
 > Chronological record of all wiki operations. Each entry starts with `## [timestamp] operation | title` for easy parsing.
+
+---
+
+## [2026-05-31 02:55] update | Sprint 6 Resume Parsing Implementation
+
+Implemented Sprint 6 resume parsing across backend and frontend, including ParsedResume storage, Celery parsing handoff, Pydantic validation, manual reparse endpoint, parsed-profile display, and focused verification. Filed the implementation summary in the wiki and refreshed roadmap/index metadata.
+
+**Pages touched:** [[Sprint 6 Resume Parsing Implementation]], [[index|Wiki Index]], [[overview|Overview]], [[log|Activity Log]]
+
+---
+
+## [2026-05-31 03:37] update | LLM Provider Architecture and Sprint 6 Completion
+
+Persisted local backend Ollama Cloud settings in ignored environment configuration, documented the current LLM provider architecture in the wiki, and marked Sprint 6 complete based on working PDF/DOCX extraction, structured parsing, LLM enhancement, fallback recovery, and passing tests.
+
+**Pages touched:** [[LLM Provider Architecture]], [[Sprint 6 Resume Parsing Implementation]], [[index|Wiki Index]], [[overview|Overview]], [[log|Activity Log]]
 
 ---
 

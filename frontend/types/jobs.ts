@@ -31,6 +31,17 @@ export interface Job {
   updated_at: string;
 }
 
+export type ScoreValue = string | number | null;
+
+export interface ApplicationScoreFields {
+  semantic_score: ScoreValue;
+  skill_score: ScoreValue;
+  experience_score: ScoreValue;
+  final_score: ScoreValue;
+  score_version: string;
+  score_calculated_at: string | null;
+}
+
 export interface PublicJob {
   id: string;
   title: string;
@@ -75,12 +86,57 @@ export interface Application {
   candidate: Candidate;
   job_id: string;
   job_title: string;
+  job_slug?: string;
   organization: string;
+  organization_name?: string;
   status: ApplicationStatus;
+  semantic_score: ScoreValue;
+  skill_score: ScoreValue;
+  experience_score: ScoreValue;
+  final_score: ScoreValue;
+  score_version: string;
+  score_calculated_at: string | null;
   applied_at: string;
   updated_at: string;
   history?: import("./candidate").ApplicationHistoryEntry[];
   resumes?: import("./candidate").Resume[];
+}
+
+export interface RankedCandidate {
+  rank: number;
+  candidate: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  application_id: string;
+  score: number;
+  score_normalized: number;
+  breakdown: {
+    semantic_match: number;
+    skill_match: number;
+    experience_match: number;
+  };
+  breakdown_normalized: {
+    semantic_score: number;
+    skill_score: number;
+    experience_score: number;
+    final_score: number;
+  };
+  matched_skills: string[];
+  missing_skills: string[];
+  job_skills: string[];
+  candidate_skills: string[];
+  required_experience_years: number | null;
+  candidate_experience_years: number | null;
+  score_version: string;
+  score_calculated_at: string | null;
+}
+
+export interface RankedCandidatesResponse {
+  job_id: string;
+  count: number;
+  results: RankedCandidate[];
 }
 
 export interface ApplicationPayload {

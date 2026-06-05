@@ -1,4 +1,4 @@
-import type { ApplicationStatus } from "@/types/jobs";
+import type { ApplicationScoreFields, ApplicationStatus } from "@/types/jobs";
 
 export interface ApplicationHistoryEntry {
   id: string;
@@ -17,11 +17,87 @@ export interface Resume {
   file_size: number;
   mime_type: string;
   status: "pending" | "processing" | "completed" | "error";
+  view_url: string | null;
   download_url: string | null;
+  parsed_resume: ParsedResume | null;
   created_at: string;
 }
 
-export interface CandidateApplication {
+export interface ParsedResume {
+  id: string;
+  status: "pending" | "processing" | "completed" | "error";
+  schema_version: number;
+  data: ParsedResumeData;
+  confidence: "high" | "medium" | "low";
+  parser_model: string;
+  validation_errors: string[];
+  token_usage: Record<string, number | string | null>;
+  estimated_cost: string;
+  parsed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ParsedResumeData {
+  personal_info?: {
+    full_name?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    location?: string | null;
+    linkedin_url?: string | null;
+    github_url?: string | null;
+    portfolio_url?: string | null;
+  };
+  summary?: string | null;
+  skills?: Array<{
+    name: string;
+    proficiency?: string;
+    category?: string;
+    years_used?: number | null;
+  }>;
+  experience?: Array<{
+    company?: string;
+    role?: string;
+    start_date?: string;
+    end_date?: string | null;
+    location?: string | null;
+    description?: string | null;
+    achievements?: string[];
+  }>;
+  projects?: Array<{
+    name?: string;
+    start_date?: string | null;
+    end_date?: string | null;
+    description?: string | null;
+    technologies?: string[];
+    achievements?: string[];
+    url?: string | null;
+  }>;
+  education?: Array<{
+    institution?: string;
+    degree?: string | null;
+    field_of_study?: string | null;
+    graduation_year?: number | null;
+    gpa?: string | null;
+  }>;
+  certifications?: Array<{
+    name?: string;
+    issuer?: string | null;
+    year?: number | null;
+    credential_id?: string | null;
+  }>;
+  languages?: Array<{
+    language?: string;
+    proficiency?: string;
+  }>;
+  _metadata?: {
+    parsing_confidence?: "high" | "medium" | "low";
+    parsing_notes?: string[];
+    total_years_experience?: number | null;
+  };
+}
+
+export interface CandidateApplication extends ApplicationScoreFields {
   id: string;
   candidate: {
     id: string;
