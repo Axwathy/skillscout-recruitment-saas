@@ -6,6 +6,24 @@ import axios, {
 
 function getApiBaseUrl() {
   if (process.env.NEXT_PUBLIC_API_URL) {
+    if (typeof window !== "undefined") {
+      try {
+        const configuredUrl = new URL(process.env.NEXT_PUBLIC_API_URL);
+        const localHostnames = new Set(["localhost", "127.0.0.1"]);
+
+        if (
+          localHostnames.has(configuredUrl.hostname) &&
+          localHostnames.has(window.location.hostname) &&
+          configuredUrl.hostname !== window.location.hostname
+        ) {
+          configuredUrl.hostname = window.location.hostname;
+          return configuredUrl.toString().replace(/\/$/, "");
+        }
+      } catch {
+        return process.env.NEXT_PUBLIC_API_URL;
+      }
+    }
+
     return process.env.NEXT_PUBLIC_API_URL;
   }
 
@@ -46,12 +64,19 @@ function notifySessionExpired() {
   }
 }
 
+function shouldBypassRefresh(url: string | undefined) {
+  if (!url) return false;
+  return (
+    url === refreshEndpoint ||
+    url === "/api/v1/auth/login/" ||
+    url === "/api/v1/auth/register/" ||
+    url === "/api/v1/candidate/auth/register/"
+  );
+}
+
 export const apiClient = axios.create({
   baseURL: apiBaseUrl,
   withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 apiClient.interceptors.response.use(
@@ -64,8 +89,11 @@ apiClient.interceptors.response.use(
       !originalRequest ||
       status !== 401 ||
       originalRequest._retry ||
-      originalRequest.url === refreshEndpoint
+      shouldBypassRefresh(originalRequest.url)
     ) {
+      if (status === 401 && originalRequest?.url === refreshEndpoint) {
+        notifySessionExpired();
+      }
       return Promise.reject(error);
     }
 

@@ -2,12 +2,27 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { Archive, ExternalLink, LockKeyhole, Save } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { BarChart3, ExternalLink, LockKeyhole, RefreshCw, Save, Trash2 } from "lucide-react";
 
 import { getApplications } from "@/lib/applications";
-import { archiveJob, closeJob, getJob, publishJob, unpublishJob, updateJob } from "@/lib/jobs";
-import type { Application, EmploymentType, Job, JobPayload, RemotePolicy } from "@/types/jobs";
+import {
+  closeJob,
+  deleteJob,
+  getJob,
+  getRankedCandidates,
+  publishJob,
+  unpublishJob,
+  updateJob,
+} from "@/lib/jobs";
+import type {
+  Application,
+  EmploymentType,
+  Job,
+  JobPayload,
+  RankedCandidate,
+  RemotePolicy,
+} from "@/types/jobs";
 
 type EditableJobPayload = JobPayload & { status: Job["status"] };
 
@@ -47,28 +62,66 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function scoreToneFromPercent(value: number) {
+  if (value >= 85) return "bg-success-600/10 text-success-600";
+  if (value >= 70) return "bg-primary-50 text-primary-700";
+  if (value >= 50) return "bg-warning-600/10 text-warning-600";
+  return "bg-danger-600/10 text-danger-600";
+}
+
+function scoreBarFromPercent(value: number) {
+  if (value >= 85) return "bg-success-600";
+  if (value >= 70) return "bg-primary-600";
+  if (value >= 50) return "bg-warning-600";
+  return "bg-danger-600";
+}
+
+function BreakdownBar({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between gap-2 text-xs">
+        <span className="text-neutral-500">{label}</span>
+        <span className="font-semibold text-neutral-800">{value}</span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-neutral-100">
+        <div className={`h-full rounded-full ${scoreBarFromPercent(value)}`} style={{ width: `${value}%` }} />
+      </div>
+    </div>
+  );
+}
+
 export default function JobDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const [job, setJob] = useState<Job | null>(null);
   const [form, setForm] = useState<EditableJobPayload | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [rankedCandidates, setRankedCandidates] = useState<RankedCandidate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRanking, setIsRanking] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rankingError, setRankingError] = useState<string | null>(null);
 
   useEffect(() => {
     let ignore = false;
 
     async function fetchJob() {
       try {
-        const [jobResponse, applicationResponse] = await Promise.all([
+        const [jobResponse, applicationResponse, rankingResponse] = await Promise.all([
           getJob(params.id),
           getApplications(params.id),
+          getRankedCandidates(params.id).catch(() => null),
         ]);
         if (!ignore) {
           setJob(jobResponse);
           setForm(toForm(jobResponse));
           setApplications(applicationResponse);
+          if (rankingResponse) {
+            setRankedCandidates(rankingResponse.results);
+          } else {
+            setRankingError("Could not load ranked candidates.");
+          }
         }
       } catch {
         if (!ignore) {
@@ -87,6 +140,21 @@ export default function JobDetailPage() {
       ignore = true;
     };
   }, [params.id]);
+
+  async function handleRefreshRankings() {
+    setIsRanking(true);
+    setRankingError(null);
+    try {
+      const rankingResponse = await getRankedCandidates(params.id, { force: true });
+      const applicationResponse = await getApplications(params.id);
+      setRankedCandidates(rankingResponse.results);
+      setApplications(applicationResponse);
+    } catch {
+      setRankingError("Could not calculate ranked candidates.");
+    } finally {
+      setIsRanking(false);
+    }
+  }
 
   function updateField<K extends keyof EditableJobPayload>(field: K, value: EditableJobPayload[K]) {
     setForm((current) => (current ? { ...current, [field]: value } : current));
@@ -123,11 +191,13 @@ export default function JobDetailPage() {
     setForm(toForm(updated));
   }
 
-  async function handleArchive() {
+  async function handleDelete() {
     if (!job) return;
-    const updated = await archiveJob(job.id);
-    setJob(updated);
-    setForm(toForm(updated));
+    const confirmed = window.confirm(`Delete "${job.title}"? This removes it from the jobs list.`);
+    if (!confirmed) return;
+
+    await deleteJob(job.id);
+    router.push("/dashboard/jobs");
   }
 
   if (isLoading) {
@@ -161,13 +231,17 @@ export default function JobDetailPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           {/* Publish / Unpublish */}
-          {(job.status === "draft" || job.status === "published") && (
+          {(job.status === "draft" || job.status === "published" || job.status === "closed") && (
             <button
               type="button"
               onClick={handlePublishToggle}
               className="inline-flex h-10 items-center rounded-md border border-neutral-200 px-4 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
             >
-              {job.status === "published" ? "Unpublish" : "Publish"}
+              {job.status === "published"
+                ? "Unpublish"
+                : job.status === "closed"
+                  ? "Republish"
+                  : "Publish"}
             </button>
           )}
           {/* Close */}
@@ -192,19 +266,108 @@ export default function JobDetailPage() {
               Public page
             </Link>
           )}
-          {/* Archive */}
+          {/* Delete */}
           {job.status !== "archived" && (
             <button
               type="button"
-              onClick={handleArchive}
+              onClick={handleDelete}
               className="inline-flex h-10 items-center gap-2 rounded-md bg-danger-600 px-4 text-sm font-semibold text-white hover:bg-red-700"
             >
-              <Archive className="h-4 w-4" aria-hidden="true" />
-              Archive
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              Delete
             </button>
           )}
         </div>
       </div>
+
+      {/* Ranked candidates section */}
+      <section id="ranked-candidates" className="scroll-mt-6 rounded-md border border-primary-600/20 bg-white shadow-panel">
+        <div className="flex flex-col gap-3 border-b border-neutral-200 bg-primary-50/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-neutral-900">Ranked candidates</h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              Overall score with semantic, skill, and experience breakdown.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleRefreshRankings}
+            disabled={isRanking}
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary-600 px-3 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-60"
+          >
+            {isRanking ? <RefreshCw className="h-4 w-4 animate-spin" /> : <BarChart3 className="h-4 w-4" />}
+            {isRanking ? "Calculating..." : "Refresh ranking"}
+          </button>
+        </div>
+
+        {rankingError ? (
+          <p className="px-4 py-4 text-sm text-danger-600">{rankingError}</p>
+        ) : rankedCandidates.length === 0 ? (
+          <p className="px-4 py-6 text-sm text-neutral-500">
+            No ranked candidates yet. Add applications with parsed resumes, then refresh ranking.
+          </p>
+        ) : (
+          <div className="divide-y divide-neutral-200">
+            {rankedCandidates.map((candidate) => (
+              <div key={candidate.application_id} className="grid gap-4 px-4 py-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(260px,1fr)_minmax(180px,0.8fr)] lg:items-center">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xs font-bold text-neutral-700">
+                      {candidate.rank}
+                    </span>
+                    <div className="min-w-0">
+                      <Link
+                        href={`/dashboard/applications/${candidate.application_id}`}
+                        className="truncate font-medium text-neutral-900 hover:text-primary-600"
+                      >
+                        {candidate.candidate.name}
+                      </Link>
+                      <p className="truncate text-sm text-neutral-500">{candidate.candidate.email}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <BreakdownBar label="Semantic" value={candidate.breakdown.semantic_match} />
+                  <BreakdownBar label="Skills" value={candidate.breakdown.skill_match} />
+                  <BreakdownBar label="Experience" value={candidate.breakdown.experience_match} />
+                </div>
+
+                <div className="flex flex-col items-start gap-1.5 lg:items-end">
+                  <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                    <span className={`inline-flex rounded-full px-3 py-1 text-sm font-bold ${scoreToneFromPercent(candidate.score)}`}>
+                      {candidate.score} overall
+                    </span>
+                    {candidate.matched_skills.length > 0 && (
+                      <span className="text-xs text-neutral-500">
+                        {candidate.matched_skills.length}/{candidate.job_skills.length} skills
+                      </span>
+                    )}
+                  </div>
+                  {candidate.missing_skills.length > 0 && (
+                    <div className="flex flex-wrap gap-1 lg:justify-end">
+                      <span className="text-xs text-neutral-400">Missing:</span>
+                      {candidate.missing_skills.slice(0, 4).map((skill) => (
+                        <span
+                          key={skill}
+                          className="inline-flex rounded-full bg-danger-600/10 px-2 py-0.5 text-xs font-medium text-danger-600"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                      {candidate.missing_skills.length > 4 && (
+                        <span className="text-xs text-neutral-400">
+                          +{candidate.missing_skills.length - 4}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       <form
         onSubmit={handleSave}

@@ -4,7 +4,33 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { register, candidateRegister } from "@/lib/auth";
-import { ApiError } from "@/lib/api";
+import { ApiError, getApiErrorMessage } from "@/lib/api";
+
+const COMMON_PASSWORDS = new Set([
+  "12345678",
+  "123456789",
+  "password",
+  "password123",
+  "qwerty123",
+  "letmein",
+  "welcome",
+]);
+
+function getPasswordValidationMessage(password: string): string | null {
+  if (password.length < 8) {
+    return "Password must be at least 8 characters.";
+  }
+
+  if (/^\d+$/.test(password)) {
+    return "Password cannot be entirely numeric.";
+  }
+
+  if (COMMON_PASSWORDS.has(password.toLowerCase())) {
+    return "Password is too common. Use a stronger password.";
+  }
+
+  return null;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -33,6 +59,13 @@ export default function RegisterPage() {
 
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match.");
+      setIsLoading(false);
+      return;
+    }
+
+    const passwordError = getPasswordValidationMessage(formData.password);
+    if (passwordError) {
+      setError(passwordError);
       setIsLoading(false);
       return;
     }
@@ -69,9 +102,8 @@ export default function RegisterPage() {
         router.push("/dashboard");
       }
     } catch (err: any) {
-      if (err instanceof ApiError && err.data) {
-        const messages = Object.values(err.data).flat();
-        setError(messages.join(" ") || "Registration failed.");
+      if (err instanceof ApiError) {
+        setError(getApiErrorMessage(err, "Registration failed."));
       } else {
         setError("An error occurred during registration.");
       }
@@ -241,6 +273,7 @@ export default function RegisterPage() {
                 id="password"
                 name="password"
                 type="password"
+                autoComplete="new-password"
                 required
                 value={formData.password}
                 onChange={handleChange}
@@ -260,6 +293,7 @@ export default function RegisterPage() {
                 id="confirmPassword"
                 name="confirmPassword"
                 type="password"
+                autoComplete="new-password"
                 required
                 value={formData.confirmPassword}
                 onChange={handleChange}

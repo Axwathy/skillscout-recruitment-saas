@@ -25,12 +25,18 @@ export default function DashboardLayout({
   const { user, logout, isLoading, refreshSession } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const isCandidateUser = user?.role === "candidate";
+  const sessionChecked = React.useRef(false);
 
   React.useEffect(() => {
-    if (!user) {
-      refreshSession();
+    if (!user && !sessionChecked.current) {
+      sessionChecked.current = true;
+      refreshSession().then((refreshedUser) => {
+        if (!refreshedUser) {
+          router.push("/login");
+        }
+      });
     }
-  }, [refreshSession, user]);
+  }, [refreshSession, router, user]);
 
   React.useEffect(() => {
     if (!isLoading && isCandidateUser) {
@@ -44,10 +50,6 @@ export default function DashboardLayout({
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-t-transparent"></div>
       </div>
     );
-  }
-
-  if (!user && !isLoading) {
-    return null;
   }
 
   return (

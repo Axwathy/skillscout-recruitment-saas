@@ -47,9 +47,10 @@ export async function updateApplicationStatus(
   applicationId: string,
   status: string,
   notes?: string,
+  stageId?: string,
 ): Promise<CandidateApplication> {
   return apiFetch<CandidateApplication>(`/api/v1/applications/${applicationId}/status/`, {
     method: "PATCH",
-    body: JSON.stringify({ status, notes: notes ?? "" }),
+    body: JSON.stringify({ status, stage_id: stageId, notes: notes ?? "" }),
   });
 }

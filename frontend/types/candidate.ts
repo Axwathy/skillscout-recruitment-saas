@@ -1,5 +1,8 @@
 import type { ApplicationScoreFields, ApplicationStatus } from "@/types/jobs";
 
+export type ProcessingStatus = "pending" | "processing" | "completed" | "error";
+export type ParsingConfidence = "high" | "medium" | "low";
+
 export interface ApplicationHistoryEntry {
   id: string;
   from_status: string;
@@ -9,6 +12,19 @@ export interface ApplicationHistoryEntry {
   changed_at: string;
 }
 
+export interface PipelineStage {
+  id: string;
+  name: string;
+  status: ApplicationStatus;
+  order: number;
+  color: string;
+  is_terminal: boolean;
+  auto_actions?: Record<string, unknown>;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Resume {
   id: string;
   candidate: string;
@@ -16,7 +32,7 @@ export interface Resume {
   file_name: string;
   file_size: number;
   mime_type: string;
-  status: "pending" | "processing" | "completed" | "error";
+  status: ProcessingStatus;
   view_url: string | null;
   download_url: string | null;
   parsed_resume: ParsedResume | null;
@@ -25,10 +41,10 @@ export interface Resume {
 
 export interface ParsedResume {
   id: string;
-  status: "pending" | "processing" | "completed" | "error";
+  status: ProcessingStatus;
   schema_version: number;
   data: ParsedResumeData;
-  confidence: "high" | "medium" | "low";
+  confidence: ParsingConfidence;
   parser_model: string;
   validation_errors: string[];
   token_usage: Record<string, number | string | null>;
@@ -91,7 +107,8 @@ export interface ParsedResumeData {
     proficiency?: string;
   }>;
   _metadata?: {
-    parsing_confidence?: "high" | "medium" | "low";
+    // Mirrors ParsedResume.confidence when parser metadata includes source-level detail.
+    parsing_confidence?: ParsingConfidence;
     parsing_notes?: string[];
     total_years_experience?: number | null;
   };
@@ -115,6 +132,7 @@ export interface CandidateApplication extends ApplicationScoreFields {
   organization: string;
   organization_name: string;
   status: ApplicationStatus;
+  current_stage: PipelineStage | null;
   applied_at: string;
   updated_at: string;
   history?: ApplicationHistoryEntry[];
@@ -134,12 +152,19 @@ export interface CandidateProfile {
 }
 
 export interface PipelineColumn {
+  id?: string;
+  stage_id?: string;
   status: ApplicationStatus;
   label: string;
+  name?: string;
+  order?: number;
+  color?: string;
+  is_terminal?: boolean;
   count: number;
   applications: CandidateApplication[];
 }
 
 export interface PipelineBoard {
+  job_id?: string;
   columns: PipelineColumn[];
 }

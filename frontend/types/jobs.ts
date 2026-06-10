@@ -81,7 +81,7 @@ export interface Candidate {
   created_at: string;
 }
 
-export interface Application {
+export interface Application extends ApplicationScoreFields {
   id: string;
   candidate: Candidate;
   job_id: string;
@@ -90,12 +90,6 @@ export interface Application {
   organization: string;
   organization_name?: string;
   status: ApplicationStatus;
-  semantic_score: ScoreValue;
-  skill_score: ScoreValue;
-  experience_score: ScoreValue;
-  final_score: ScoreValue;
-  score_version: string;
-  score_calculated_at: string | null;
   applied_at: string;
   updated_at: string;
   history?: import("./candidate").ApplicationHistoryEntry[];

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Brain, Target, LayoutDashboard, Briefcase, Zap } from "lucide-react";
+import { Brain, Target, LayoutDashboard, Zap } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "RecruitAI — AI-Powered Recruitment",
@@ -22,12 +22,6 @@ export default function LandingPage() {
             </span>
           </Link>
           <nav className="flex items-center gap-4" aria-label="Main navigation">
-            <Link
-              href="/jobs"
-              className="text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors"
-            >
-              Careers
-            </Link>
             <Link
               href="/login"
               className="text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors"
@@ -66,23 +60,6 @@ export default function LandingPage() {
             RecruitAI brings deterministic scoring and AI explanations together in
             one enterprise recruitment workspace. Math ranks. AI explains. You decide.
           </p>
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/register"
-              className="group flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-primary-600 px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/30 transition-all duration-200 hover:bg-primary-700 hover:scale-105 active:scale-95"
-              id="hero-cta-primary"
-            >
-              Start free trial
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Link>
-            <Link
-              href="/jobs"
-              className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg border border-neutral-200 bg-white px-8 py-3.5 text-sm font-semibold text-neutral-700 shadow-sm transition-all duration-200 hover:bg-neutral-50 hover:scale-105 active:scale-95"
-            >
-              <Briefcase className="h-4 w-4 text-neutral-400" />
-              Browse open roles
-            </Link>
-          </div>
         </div>
       </section>
 

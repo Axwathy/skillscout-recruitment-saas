@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, CheckCircle2, Circle, FileText, XCircle } from "lucide-react";
 
-import { ResumeUpload } from "@/components/ResumeUpload";
 import { getCandidateApplication } from "@/lib/candidate";
 import type { CandidateApplication } from "@/types/candidate";
 import type { ApplicationStatus } from "@/types/jobs";
@@ -237,15 +236,6 @@ export default function CandidateApplicationDetailPage() {
         ) : (
           <p className="mt-2 text-sm text-neutral-500">No resume uploaded yet.</p>
         )}
-        <div className="mt-4">
-          <ResumeUpload
-            applicationId={app.id}
-            isCandidateMode={true}
-            onUploadSuccess={() => {
-              getCandidateApplication(params.id).then(setApp);
-            }}
-          />
-        </div>
       </section>
 
       {/* Timeline */}
