@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -6,7 +7,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from apps.accounts.models import Recruiter, User
-from apps.candidates.models import Application, ApplicationHistory, Candidate, Resume
+from apps.candidates.models import Application, ApplicationHistory, Candidate, ParsedResume, Resume
 from apps.jobs.models import Job
 from apps.organizations.models import Organization
 
@@ -199,7 +200,7 @@ def test_recruiter_cannot_access_candidate_portal(api_client):
     assert response.status_code == 403
 
 
-def test_recruiter_application_detail_includes_signed_resume_url(api_client):
+def test_recruiter_application_detail_includes_resume_file_urls(api_client):
     recruiter, org = create_recruiter()
     job = create_job(org, recruiter)
     application = create_application(org, job)
@@ -215,16 +216,92 @@ def test_recruiter_application_detail_includes_signed_resume_url(api_client):
     )
     api_client.force_authenticate(user=recruiter)
 
-    with patch(
-        "apps.candidates.serializers.get_signed_url",
-        return_value="https://signed.example/resume.pdf",
-    ):
-        response = api_client.get(reverse("application-detail", args=[application.id]))
+    response = api_client.get(reverse("application-detail", args=[application.id]))
 
     assert response.status_code == 200
     resumes = response.json()["resumes"]
     assert resumes[0]["application"] == str(application.id)
-    assert resumes[0]["download_url"] == "https://signed.example/resume.pdf"
+    assert resumes[0]["view_url"] == reverse("resume-view", args=[resumes[0]["id"]])
+    assert resumes[0]["download_url"] == reverse("resume-download", args=[resumes[0]["id"]])
+
+
+def test_recruiter_application_detail_reconciles_completed_parsed_resume_status(api_client):
+    recruiter, org = create_recruiter()
+    job = create_job(org, recruiter)
+    application = create_application(org, job)
+    resume = Resume.objects.create(
+        candidate=application.candidate,
+        application=application,
+        file_url=f"{org.id}/{application.candidate_id}/resume.pdf",
+        file_name="resume.pdf",
+        file_size=123,
+        mime_type="application/pdf",
+        file_hash="abc",
+        status=Resume.Status.PROCESSING,
+        uploaded_by=recruiter,
+    )
+    ParsedResume.objects.create(
+        resume=resume,
+        candidate=application.candidate,
+        application=application,
+        status=ParsedResume.Status.COMPLETED,
+        data={"_metadata": {"total_years_experience": 4}},
+        confidence=ParsedResume.Confidence.HIGH,
+    )
+    api_client.force_authenticate(user=recruiter)
+
+    response = api_client.get(reverse("application-detail", args=[application.id]))
+
+    assert response.status_code == 200
+    resume_payload = response.json()["resumes"][0]
+    assert resume_payload["status"] == Resume.Status.COMPLETED
+    assert resume_payload["parsed_resume"]["status"] == ParsedResume.Status.COMPLETED
+
+
+def test_resume_extraction_parses_inline_and_refreshes_scores(settings):
+    settings.CELERY_TASK_ALWAYS_EAGER = True
+    recruiter, org = create_recruiter()
+    job = create_job(org, recruiter)
+    application = create_application(org, job, email="alice@example.com")
+    resume = Resume.objects.create(
+        candidate=application.candidate,
+        application=application,
+        file_url=f"{org.id}/{application.candidate_id}/resume.pdf",
+        file_name="resume.pdf",
+        file_size=100,
+        mime_type="application/pdf",
+        status=Resume.Status.PENDING,
+    )
+
+    parse_result = SimpleNamespace(
+        data={
+            "skills": [{"name": "Python"}],
+            "_metadata": {"total_years_experience": 4},
+        },
+        confidence=ParsedResume.Confidence.HIGH,
+        model="heuristic-fallback",
+        validation_errors=[],
+        token_usage={},
+        estimated_cost=None,
+    )
+
+    with (
+        patch("apps.candidates.tasks.extract_text_from_bytes", return_value="Python 4 years"),
+        patch("apps.candidates.tasks.parse_resume_text", return_value=parse_result),
+    ):
+        from apps.candidates.tasks import extract_resume_text_from_bytes
+
+        extract_resume_text_from_bytes(resume, b"%PDF-1.4 resume bytes")
+
+    resume.refresh_from_db()
+    application.refresh_from_db()
+    parsed_resume = ParsedResume.objects.get(resume=resume)
+
+    assert resume.status == Resume.Status.COMPLETED
+    assert parsed_resume.status == ParsedResume.Status.COMPLETED
+    assert application.skill_score == 1
+    assert application.final_score is not None
+    assert application.final_score > 0
 
 
 def test_recruiter_resume_upload_enforces_org_application_isolation(api_client):

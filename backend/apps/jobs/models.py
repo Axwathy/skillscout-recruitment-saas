@@ -5,6 +5,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
+from pgvector.django import HnswIndex, VectorField
 
 
 class Job(models.Model):
@@ -63,6 +64,10 @@ class Job(models.Model):
         related_name="created_jobs",
     )
     published_at = models.DateTimeField(null=True, blank=True)
+    embedding = VectorField(dimensions=384, null=True, blank=True)
+    embedding_model = models.CharField(max_length=100, blank=True)
+    embedding_text_hash = models.CharField(max_length=64, blank=True, db_index=True)
+    embedding_generated_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -72,6 +77,13 @@ class Job(models.Model):
             models.Index(fields=["organization", "status"]),
             models.Index(fields=["organization", "created_at"]),
             models.Index(fields=["organization", "department"]),
+            HnswIndex(
+                fields=["embedding"],
+                name="jobs_job_embedding_hnsw",
+                m=16,
+                ef_construction=64,
+                opclasses=["vector_cosine_ops"],
+            ),
         ]
 
     def __str__(self) -> str:

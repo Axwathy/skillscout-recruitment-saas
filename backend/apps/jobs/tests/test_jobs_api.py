@@ -1,9 +1,12 @@
+from unittest.mock import patch
+
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from rest_framework.test import APIClient
 
 from apps.accounts.models import Recruiter, User
-from apps.candidates.models import Application, Candidate
+from apps.candidates.models import Application, Candidate, Resume
 from apps.jobs.models import Job
 from apps.organizations.models import Organization
 
@@ -149,6 +152,42 @@ def test_public_candidate_can_apply_to_published_job(api_client):
     assert candidate.organization == organization
     assert application.organization == organization
     assert application.status == Application.Status.APPLIED
+
+
+def test_public_candidate_can_apply_with_resume_upload(api_client):
+    user, organization = create_recruiter("recruiter@example.com")
+    job = create_job(organization, user, status=Job.Status.PUBLISHED)
+    resume = SimpleUploadedFile(
+        "resume.pdf",
+        b"%PDF-1.4 resume bytes",
+        content_type="application/pdf",
+    )
+
+    with (
+        patch("apps.jobs.views.upload_file") as upload,
+        patch("apps.jobs.views.extract_resume_text_from_bytes") as extract,
+    ):
+        response = api_client.post(
+            reverse("job-apply", args=[job.id]),
+            {
+                "first_name": "Asha",
+                "last_name": "Patel",
+                "email": "asha@example.com",
+                "phone": "+1 555 0101",
+                "linkedin_url": "https://linkedin.com/in/asha",
+                "github_url": "https://github.com/asha",
+                "resume": resume,
+            },
+            format="multipart",
+        )
+
+    assert response.status_code == 201
+    application = Application.objects.get(candidate__email="asha@example.com", job=job)
+    stored_resume = Resume.objects.get(application=application)
+    assert stored_resume.file_name == "resume.pdf"
+    assert stored_resume.mime_type == "application/pdf"
+    upload.assert_called_once()
+    extract.assert_called_once()
 
 
 def test_application_list_is_tenant_scoped(api_client):
