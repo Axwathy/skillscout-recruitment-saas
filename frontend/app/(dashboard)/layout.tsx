@@ -4,14 +4,27 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { LayoutDashboard, Briefcase, Users, GitBranch, BarChart3, Settings, LogOut, ChevronDown, Zap } from "lucide-react";
+import {
+  BarChart3,
+  Briefcase,
+  ChevronDown,
+  GitBranch,
+  LayoutDashboard,
+  LogOut,
+  Search,
+  Users,
+  Zap,
+} from "lucide-react";
+
+import { NotificationBell } from "@/components/NotificationBell";
 
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/dashboard", active: true, icon: LayoutDashboard },
   { name: "Jobs", href: "/dashboard/jobs", active: true, icon: Briefcase },
   { name: "Applications", href: "/dashboard/applications", active: true, icon: Users },
   { name: "Pipeline", href: "/dashboard/pipeline", active: true, icon: GitBranch },
-  { name: "Candidates", href: "/dashboard/candidates", active: false, icon: Users },
+  { name: "Candidates", href: "/dashboard/candidates", active: true, icon: Users },
+  { name: "Search", href: "/dashboard/search", active: true, icon: Search },
   { name: "Analytics", href: "/analytics", active: false, icon: BarChart3 },
 ];
 
@@ -151,13 +164,16 @@ export default function DashboardLayout({
 
       {/* Main area */}
       <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
-        {/* Top bar (mobile mainly) */}
-        <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center border-b border-neutral-200 bg-white/80 backdrop-blur-md px-4 sm:px-6 lg:hidden">
-          <div className="flex items-center gap-2">
+        {/* Top bar — logo on mobile, notification bell on all sizes */}
+        <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between border-b border-neutral-200 bg-white/80 backdrop-blur-md px-4 sm:px-6">
+          <div className="flex items-center gap-2 lg:hidden">
             <Zap className="h-5 w-5 text-primary-600" />
             <span className="text-base font-bold text-neutral-900 tracking-tight">
               RecruitAI
             </span>
+          </div>
+          <div className="ml-auto">
+            <NotificationBell />
           </div>
         </header>
 

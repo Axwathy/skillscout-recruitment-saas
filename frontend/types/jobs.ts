@@ -90,6 +90,7 @@ export interface Application extends ApplicationScoreFields {
   organization: string;
   organization_name?: string;
   status: ApplicationStatus;
+  current_stage?: import("./candidate").PipelineStage | null;
   applied_at: string;
   updated_at: string;
   history?: import("./candidate").ApplicationHistoryEntry[];

@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 
 import "@/styles/globals.css";
 import { AuthProvider } from "@/contexts/auth-context";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
 
 export const metadata: Metadata = {
   title: "RecruitAI",
@@ -21,7 +15,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" data-scroll-behavior="smooth">
-      <body className={`${inter.variable} min-h-screen bg-neutral-50 font-sans text-neutral-900`}>
+      <body className="min-h-screen bg-neutral-50 font-sans text-neutral-900">
         <AuthProvider>
           {children}
         </AuthProvider>

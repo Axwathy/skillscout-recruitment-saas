@@ -14,8 +14,10 @@ import {
   Mail,
   Phone,
   RefreshCw,
+  UserRound,
 } from "lucide-react";
 
+import { InterviewPrepPanel } from "@/components/InterviewPrepPanel";
 import { ParsedResumePanel } from "@/components/ParsedResumePanel";
 import { isUnauthorizedError } from "@/lib/api";
 import { getApplication, getResumeFile, reparseResume } from "@/lib/applications";
@@ -230,6 +232,13 @@ export default function ApplicationDetailPage() {
             </p>
 
             <div className="mt-6 flex flex-wrap gap-4">
+              <Link
+                href={`/dashboard/candidates/${app.candidate.id}`}
+                className="flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700"
+              >
+                <UserRound className="h-4 w-4" />
+                Candidate profile
+              </Link>
               <a
                 href={`mailto:${app.candidate.email}`}
                 className="flex items-center gap-2 text-sm text-neutral-600 hover:text-primary-600"
@@ -313,6 +322,8 @@ export default function ApplicationDetailPage() {
               )}
             </div>
           </div>
+
+          <InterviewPrepPanel applicationId={app.id} />
         </div>
 
         {/* Right Column (Actions) */}

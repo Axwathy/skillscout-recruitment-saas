@@ -139,6 +139,18 @@ export interface CandidateApplication extends ApplicationScoreFields {
   resumes?: Resume[];
 }
 
+export interface CandidateRecord {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  linkedin_url: string;
+  github_url: string;
+  resumes?: Resume[];
+  created_at: string;
+}
+
 export interface CandidateProfile {
   id?: string;
   first_name: string;
@@ -149,6 +161,45 @@ export interface CandidateProfile {
   github_url: string;
   application_count: number;
   created_at?: string;
+}
+
+export interface CandidateNote {
+  id: string;
+  candidate: string;
+  author_email: string | null;
+  body: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type CandidateProfileActivityType =
+  | "application_submitted"
+  | "status_change"
+  | "stage_change"
+  | "resume_uploaded"
+  | "resume_parsed";
+
+export interface CandidateProfileActivityEntry {
+  id: string;
+  type: CandidateProfileActivityType;
+  timestamp: string;
+  application_id: string | null;
+  job_id: string | null;
+  job_title: string | null;
+  title: string;
+  description: string;
+  notes?: string;
+  actor_email: string | null;
+}
+
+export interface RecruiterCandidateProfile {
+  candidate: CandidateRecord;
+  latest_application: CandidateApplication | null;
+  applications: CandidateApplication[];
+  latest_resume: Resume | null;
+  parsed_resume: ParsedResume | null;
+  activity: CandidateProfileActivityEntry[];
+  notes: CandidateNote[];
 }
 
 export interface PipelineColumn {

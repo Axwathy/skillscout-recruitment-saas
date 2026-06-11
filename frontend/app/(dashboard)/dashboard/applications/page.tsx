@@ -141,9 +141,12 @@ export default function ApplicationsPage() {
               applications.map((application) => (
                 <tr key={application.id}>
                   <td className="px-4 py-4">
-                    <div className="font-medium text-neutral-900">
+                    <Link
+                      href={`/dashboard/candidates/${application.candidate.id}`}
+                      className="font-medium text-primary-600 hover:text-primary-700"
+                    >
                       {application.candidate.first_name} {application.candidate.last_name}
-                    </div>
+                    </Link>
                     <div className="text-sm text-neutral-500">{application.candidate.email}</div>
                   </td>
                   <td className="px-4 py-4 text-sm text-neutral-700">
