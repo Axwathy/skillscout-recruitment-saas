@@ -1,4 +1,4 @@
-# Lumina Nexus — AI Recruitment SaaS
+# SkillScout — AI Recruitment SaaS
 
 AI-assisted enterprise recruitment platform. **Math ranks. AI explains. You decide.**
 
