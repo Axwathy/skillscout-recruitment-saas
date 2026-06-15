@@ -1,43 +1,103 @@
 # SkillScout — AI Recruitment SaaS
 
-AI-assisted enterprise recruitment platform. **Math ranks. AI explains. You decide.**
+> **Math ranks. AI explains. You decide.**
 
-Sprint 1 complete: project foundation, backend app scaffold, JWT configuration, frontend route structure, design system, and development infrastructure.
+SkillScout is an AI-assisted enterprise recruitment platform. It ingests resumes, ranks candidates against a job with transparent scoring, and uses a locally-served LLM to *explain* every ranking in plain language — so recruiters stay in control of the final call. It ships with two portals: a full recruiter dashboard and a candidate-facing application portal.
 
 ---
 
-## Stack
+## Highlights
+
+- **Transparent AI ranking** — deterministic scoring math produces the ranking; the LLM generates a human-readable explanation for *why* each candidate scored the way they did. No black-box decisions.
+- **Semantic candidate search** — vector embeddings (pgvector + `bge-small-en-v1.5`) let recruiters search talent by meaning, not just keywords.
+- **Automated resume parsing** — PDF and DOCX resumes are parsed into structured profiles (skills, experience timeline, education).
+- **AI interview preparation** — generates tailored interview questions and prep material per candidate/role.
+- **Batch processing** — upload and screen large candidate sets in the background via Celery.
+- **Visual hiring pipeline** — drag-and-drop kanban to move candidates through stages.
+- **Analytics dashboard** — funnel, time-to-hire, and pipeline metrics.
+- **Real-time notifications** — in-app updates over WebSockets (Django Channels).
+- **Dual portals** — recruiter dashboard + candidate portal, with JWT + HTTP-only cookie auth and email verification.
+
+---
+
+## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Next.js 16 · TypeScript · TailwindCSS · shadcn/ui |
-| Backend | Django 5.x · Django REST Framework · SimpleJWT |
-| Database | PostgreSQL (Supabase-managed in production) |
-| Auth | JWT + HTTP-only cookies (implemented Sprint 2) |
+| Frontend | Next.js (App Router) · TypeScript · TailwindCSS · shadcn/ui |
+| Backend | Django 5.2 · Django REST Framework · SimpleJWT |
+| Realtime | Django Channels · Daphne · channels-redis |
+| Database | PostgreSQL + **pgvector** (Supabase-managed in production) |
 | Task queue | Celery + Redis |
-| Local AI | Ollama · Qwen2.5-Coder:7B · BAAI/bge-small-en-v1.5 (Sprint 4+) |
+| AI / ML | Ollama-served LLM (Qwen family) · `sentence-transformers` · `BAAI/bge-small-en-v1.5` (384-dim) |
+| Resume parsing | `pdfplumber` · `python-docx` |
+| Auth | JWT + HTTP-only cookies |
+| Tooling | Ruff · Pytest · ESLint · Prettier · pre-commit |
 | CI/CD | GitHub Actions |
+
+---
+
+## Architecture
+
+```
+┌──────────────┐      ┌─────────────────────┐      ┌──────────────┐
+│  Next.js UI  │ ───▶ │  Django REST API    │ ───▶ │  PostgreSQL  │
+│  (dashboard  │ ◀─── │  + Channels (WS)    │ ◀─── │  + pgvector  │
+│  + candidate)│      └─────────┬───────────┘      └──────────────┘
+└──────────────┘                │
+                                ▼
+                   ┌────────────────────────┐     ┌──────────────┐
+                   │  Celery workers        │ ──▶ │  Ollama LLM  │
+                   │  (parsing, ranking,    │     │  + embeddings│
+                   │   batch, notifications)│     └──────────────┘
+                   └───────────┬────────────┘
+                               ▼
+                          ┌─────────┐
+                          │  Redis  │  (broker + channel layer)
+                          └─────────┘
+```
+
+### Backend apps (`backend/apps/`)
+
+| App | Responsibility |
+|-----|----------------|
+| `accounts` | Users, authentication, JWT cookie flows, email verification |
+| `organizations` | Multi-tenant orgs and membership |
+| `jobs` | Job postings and requirements |
+| `candidates` | Candidate profiles, resumes, applications, notes |
+| `ai_engine` | Embeddings, ranking, semantic search, experience timeline |
+| `interviews` | AI-generated interview prep and questions |
+| `pipeline` | Hiring stages and candidate movement |
+| `batch` | Bulk resume upload and background screening |
+| `analytics` | Recruitment metrics and reporting |
+| `notifications` | Real-time + persisted notifications |
+| `core` | Shared utilities, health checks, base models |
+
+### Frontend routes (`frontend/app/`)
+
+- **`(dashboard)`** — recruiter app: `jobs`, `candidates`, `applications`, `pipeline`, `search`, `batch`, `analytics`, `settings`
+- **`(candidate)`** — candidate portal: `dashboard`, `applications`
+- **`(public)`** — `login`, `register`, `jobs`, `pending-verification`
 
 ---
 
 ## Quick Start
 
-### 1. Copy environment variables
+### 1. Configure environment
 
 ```bash
 cp .env.example .env
-# Also copy service-level examples
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env.local
 ```
 
-Edit `.env` and set `DJANGO_SECRET_KEY` to a 50+ character random string:
+Generate a Django secret key and set `DJANGO_SECRET_KEY` in `.env`:
 
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(50))"
 ```
 
-### 2. Start with Docker (recommended)
+### 2. Run with Docker (recommended)
 
 ```bash
 docker compose up --build
@@ -46,7 +106,7 @@ docker compose exec django python manage.py migrate
 
 ### 3. Or run services locally
 
-**Backend:**
+**Backend**
 
 ```powershell
 cd backend
@@ -57,13 +117,15 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-**Frontend:**
+**Frontend**
 
 ```powershell
 cd frontend
 npm install
 npm run dev
 ```
+
+> **AI features** require a running [Ollama](https://ollama.com) instance and will download the `bge-small-en-v1.5` embedding model on first use. Set `OLLAMA_BASE_URL`, `LLM_MODEL`, and `EMBEDDING_MODEL` in `.env`.
 
 ---
 
@@ -78,9 +140,9 @@ npm run dev
 
 ---
 
-## Development Commands
+## Development
 
-**Backend:**
+**Backend**
 
 ```bash
 pytest                    # Run tests
@@ -89,7 +151,7 @@ ruff format .             # Format
 python manage.py check    # Validate Django config
 ```
 
-**Frontend:**
+**Frontend**
 
 ```bash
 npm run dev               # Dev server
@@ -98,7 +160,7 @@ npm run type-check        # TypeScript
 npm run format            # Prettier
 ```
 
-**Pre-commit:**
+**Pre-commit**
 
 ```bash
 pre-commit install         # Install hooks (run once)
@@ -110,12 +172,12 @@ pre-commit run --all-files # Run all hooks manually
 ## Repository Layout
 
 ```
-backend/        Django API — apps, config, migrations
-frontend/       Next.js — app router, components, types
+backend/        Django API — apps, config, migrations, Celery tasks
+frontend/       Next.js — App Router, components, types
 supabase/       Supabase local dev config
-infrastructure/ Docker, deployment support files
+infrastructure/ Docker and deployment support
 raw/            Human-managed vault (architecture, ADRs, sprints)
-wiki/           LLM-managed Obsidian knowledge base
+wiki/           Knowledge base (Obsidian)
 ```
 
 ---
@@ -132,11 +194,6 @@ wiki/           LLM-managed Obsidian knowledge base
 
 ---
 
-## Sprint Status
+## License
 
-| Sprint | Status | Focus |
-|--------|--------|-------|
-| **1** | ✅ Complete | Foundation — project structure, DX, base models, JWT config |
-| 2 | 🔜 Next | Authentication — login, register, JWT cookie flows |
-| 3 | Planned | Organizations + Jobs domain |
-| 4+ | Planned | Candidates, AI pipeline, pipeline management, analytics |
+Released under the [MIT License](LICENSE).
