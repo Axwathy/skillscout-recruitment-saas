@@ -91,9 +91,12 @@ class CandidateListView(generics.ListAPIView):
             )
         return queryset
 
-class CandidateDetailView(generics.RetrieveAPIView):
+class CandidateDetailView(generics.RetrieveDestroyAPIView):
     """
-    GET /api/v1/candidates/<pk>/
+    GET /api/v1/applications/candidates/<pk>/ — retrieve a candidate.
+    DELETE /api/v1/applications/candidates/<pk>/ — permanently remove a candidate
+    (and their applications, resumes, and notes via cascade). Restricted to the
+    recruiter's own organization.
     """
     serializer_class = CandidateSerializer
     permission_classes = [IsVerifiedRecruiter]
@@ -551,16 +554,31 @@ class ApplicationStatusUpdateView(views.APIView):
             ip_address=request.META.get("REMOTE_ADDR"),
         )
 
+        if new_status == Application.Status.HIRED:
+            notify_title = "🎉 Candidate hired"
+            notify_body = (
+                f"{application.candidate.full_name} was hired for {application.job.title}. "
+                f"Review data retention — keep their record or remove their data."
+            )
+            notify_url = f"/dashboard/candidates/{application.candidate_id}"
+        else:
+            notify_title = "Candidate moved"
+            notify_body = (
+                f"{application.candidate.full_name} moved to "
+                f"{application.get_status_display()}."
+            )
+            notify_url = f"/dashboard/applications/{application.id}"
+
         notify_recruiters_for_job(
             application.job,
             Notification.EventType.CANDIDATE_MOVED,
-            title="Candidate moved",
-            body=f"{application.candidate.full_name} moved to "
-            f"{application.get_status_display()}.",
+            title=notify_title,
+            body=notify_body,
             data={
-                "url": f"/dashboard/applications/{application.id}",
+                "url": notify_url,
                 "application_id": str(application.id),
                 "job_id": str(application.job_id),
+                "candidate_id": str(application.candidate_id),
             },
             actor=request.user,
         )

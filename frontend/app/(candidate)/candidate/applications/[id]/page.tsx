@@ -82,8 +82,8 @@ function ProgressTracker({ status }: { status: ApplicationStatus }) {
   }
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-panel overflow-x-auto">
-      <h3 className="mb-5 text-sm font-semibold text-neutral-700 uppercase tracking-wide">
+    <div className="glass-panel overflow-x-auto rounded-lg p-5">
+      <h3 className="mb-5 text-sm font-semibold uppercase tracking-label text-neutral-700">
         Application Progress
       </h3>
       <div className="flex min-w-max items-center gap-0">
@@ -185,7 +185,7 @@ export default function CandidateApplicationDetailPage() {
       </Link>
 
       {/* Header card */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-panel">
+      <div className="glass-panel rounded-lg p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-lg font-bold text-primary-600">
@@ -212,7 +212,7 @@ export default function CandidateApplicationDetailPage() {
       {/* Progress tracker */}
       <ProgressTracker status={app.status} />
 
-      <section className="rounded-xl border border-neutral-200 bg-white p-5 shadow-panel">
+      <section className="glass-panel rounded-lg p-5">
         <h2 className="text-base font-semibold text-neutral-900">Resume</h2>
         {app.resumes && app.resumes.length > 0 ? (
           <ul className="mt-4 space-y-3">
@@ -240,8 +240,8 @@ export default function CandidateApplicationDetailPage() {
 
       {/* Timeline */}
       {app.history && app.history.length > 0 && (
-        <section className="rounded-xl border border-neutral-200 bg-white shadow-panel overflow-hidden">
-          <div className="border-b border-neutral-100 px-5 py-4">
+        <section className="glass-panel overflow-hidden rounded-lg">
+          <div className="border-b border-neutral-200/70 px-5 py-4">
             <h2 className="text-base font-semibold text-neutral-900">Activity Timeline</h2>
           </div>
           <ul className="divide-y divide-neutral-50 px-5">

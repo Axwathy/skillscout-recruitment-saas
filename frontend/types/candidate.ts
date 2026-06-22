@@ -139,7 +139,30 @@ export interface CandidateApplication extends ApplicationScoreFields {
   resumes?: Resume[];
 }
 
-export interface CandidateRecord {
+export interface ProfileProject {
+  name: string;
+  description: string;
+}
+
+export interface ProfileExperience {
+  role: string;
+  company: string;
+  description: string;
+}
+
+export interface CandidateProfileFields {
+  state: string;
+  country: string;
+  years_of_experience: number | string | null;
+  institution: string;
+  cgpa: string;
+  skills: string[];
+  projects: ProfileProject[];
+  experience_entries: ProfileExperience[];
+  certifications: string[];
+}
+
+export interface CandidateRecord extends CandidateProfileFields {
   id: string;
   first_name: string;
   last_name: string;
@@ -151,7 +174,7 @@ export interface CandidateRecord {
   created_at: string;
 }
 
-export interface CandidateProfile {
+export interface CandidateProfile extends CandidateProfileFields {
   id?: string;
   first_name: string;
   last_name: string;
@@ -161,6 +184,19 @@ export interface CandidateProfile {
   github_url: string;
   application_count: number;
   created_at?: string;
+}
+
+export interface JobRecommendation {
+  id: string;
+  slug: string;
+  title: string;
+  organization_name: string;
+  location: string;
+  employment_type: string;
+  remote_policy: string;
+  salary_range: string;
+  match_score: number | null;
+  matched_skills: number;
 }
 
 export interface CandidateNote {

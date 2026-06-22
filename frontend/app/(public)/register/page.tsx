@@ -3,8 +3,27 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrowLeft, Radar } from "lucide-react";
+
 import { register, candidateRegister } from "@/lib/auth";
 import { ApiError, getApiErrorMessage } from "@/lib/api";
+
+function UnderlineInput({
+  label,
+  ...props
+}: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+        {label}
+      </label>
+      <input
+        {...props}
+        className="w-full border-0 border-b-2 border-neutral-200 bg-transparent pb-2 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-300 focus:border-[#EB4425]"
+      />
+    </div>
+  );
+}
 
 const COMMON_PASSWORDS = new Set([
   "12345678",
@@ -113,199 +132,163 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-12 relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none"></div>
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12">
+      <Link
+        href="/"
+        className="absolute left-5 top-5 z-20 inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white/70 px-4 py-2 text-sm font-medium text-neutral-600 backdrop-blur transition-colors hover:border-neutral-900 hover:text-neutral-900"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to home
+      </Link>
 
-      <div className="w-full max-w-lg relative z-10">
-        <div className="rounded-2xl border border-neutral-200 bg-white/80 backdrop-blur-xl p-8 shadow-xl shadow-neutral-200/50">
-          <div className="mb-8 text-center">
+      {/* Soft gradient background */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,#ffffff_0%,#f5f3f1_45%,#eceae7_100%)]" />
+      <div className="pointer-events-none absolute -top-32 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-[#EB4425]/10 blur-3xl" />
+
+      <div className="relative z-10 w-full max-w-lg">
+        <div className="rounded-[24px] border border-white/70 bg-white/90 p-10 shadow-[0_24px_60px_-20px_rgba(26,28,28,0.18)] backdrop-blur-xl">
+          <div className="flex flex-col items-center text-center">
             <Link
               href="/"
-              className="text-sm font-bold tracking-tight text-neutral-900 hover:text-primary-600 transition-colors"
+              className="flex h-16 w-16 items-center justify-center rounded-full bg-[#EB4425] text-white shadow-[0_10px_24px_-6px_rgba(235,68,37,0.55)]"
             >
-              RecruitAI
+              <Radar className="h-8 w-8" />
             </Link>
-            <h1 className="mt-4 text-2xl font-bold tracking-tight text-neutral-900">
+            <span className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-[#EB4425]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#EB4425]">
+              AI · Powered
+            </span>
+            <h1 className="mt-4 text-3xl font-bold tracking-tight text-neutral-900">
               Create your account
             </h1>
-            <p className="mt-2 text-sm text-neutral-500">
-              Get started with RecruitAI today.
-            </p>
+            <p className="mt-1.5 text-sm text-neutral-500">Get started with SkillScout today.</p>
           </div>
 
-          <div className="flex rounded-lg border border-neutral-200 p-1 mb-8 bg-neutral-50/50 backdrop-blur-sm">
+          {/* Role toggle */}
+          <div className="mt-8 flex rounded-full border border-neutral-200 bg-neutral-100/60 p-1">
             <button
               type="button"
-              onClick={() => { setRole("candidate"); setError(null); }}
-              className={`flex-1 rounded-md py-2 text-sm font-semibold transition-all duration-200 ${
-                role === "candidate" ? "bg-white text-primary-600 shadow-sm ring-1 ring-neutral-200/50" : "text-neutral-500 hover:text-neutral-900"
+              onClick={() => {
+                setRole("candidate");
+                setError(null);
+              }}
+              className={`flex-1 rounded-full py-2 text-sm font-semibold transition-all duration-200 ${
+                role === "candidate" ? "bg-white text-[#EB4425] shadow-sm" : "text-neutral-500 hover:text-neutral-900"
               }`}
             >
               Candidate
             </button>
             <button
               type="button"
-              onClick={() => { setRole("recruiter"); setError(null); }}
-              className={`flex-1 rounded-md py-2 text-sm font-semibold transition-all duration-200 ${
-                role === "recruiter" ? "bg-white text-primary-600 shadow-sm ring-1 ring-neutral-200/50" : "text-neutral-500 hover:text-neutral-900"
+              onClick={() => {
+                setRole("recruiter");
+                setError(null);
+              }}
+              className={`flex-1 rounded-full py-2 text-sm font-semibold transition-all duration-200 ${
+                role === "recruiter" ? "bg-white text-[#EB4425] shadow-sm" : "text-neutral-500 hover:text-neutral-900"
               }`}
             >
               Recruiter
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="mt-8 space-y-6">
             {error && (
-              <div className="rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-700 animate-in fade-in slide-in-from-top-1">
+              <div className="animate-fade-in rounded-xl bg-[#EB4425]/8 px-4 py-3 text-sm font-medium text-[#B51D00]">
                 {error}
               </div>
             )}
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-neutral-700">
-                  First name
-                </label>
-                <input
-                  id="firstName"
-                  name="firstName"
-                  type="text"
-                  required
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  className="mt-1.5 block w-full rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm placeholder-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all duration-200 disabled:opacity-50"
-                  disabled={isLoading}
-                />
-              </div>
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-neutral-700">
-                  Last name
-                </label>
-                <input
-                  id="lastName"
-                  name="lastName"
-                  type="text"
-                  required
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  className="mt-1.5 block w-full rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm placeholder-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all duration-200 disabled:opacity-50"
-                  disabled={isLoading}
-                />
-              </div>
+              <UnderlineInput
+                name="firstName"
+                label="First name"
+                type="text"
+                required
+                value={formData.firstName}
+                onChange={handleChange}
+                disabled={isLoading}
+              />
+              <UnderlineInput
+                name="lastName"
+                label="Last name"
+                type="text"
+                required
+                value={formData.lastName}
+                onChange={handleChange}
+                disabled={isLoading}
+              />
             </div>
 
             {role === "recruiter" && (
-              <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
-                <div>
-                  <label htmlFor="companyName" className="block text-sm font-medium text-neutral-700">
-                    Organization name
-                  </label>
-                  <input
-                    id="companyName"
-                    name="companyName"
-                    type="text"
-                    required
-                    value={formData.companyName}
-                    onChange={handleChange}
-                    placeholder="Acme Corp"
-                    className="mt-1.5 block w-full rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm placeholder-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all duration-200 disabled:opacity-50"
-                    disabled={isLoading}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="website" className="block text-sm font-medium text-neutral-700">
-                    Company domain <span className="text-neutral-400 font-normal">(required if no LinkedIn)</span>
-                  </label>
-                  <input
-                    id="website"
-                    name="website"
-                    type="url"
-                    value={formData.website}
-                    onChange={handleChange}
-                    placeholder="https://acme.com"
-                    className="mt-1.5 block w-full rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm placeholder-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all duration-200 disabled:opacity-50"
-                    disabled={isLoading}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="linkedinProfile" className="block text-sm font-medium text-neutral-700">
-                    LinkedIn profile <span className="text-neutral-400 font-normal">(required if no domain)</span>
-                  </label>
-                  <input
-                    id="linkedinProfile"
-                    name="linkedinProfile"
-                    type="url"
-                    value={formData.linkedinProfile}
-                    onChange={handleChange}
-                    placeholder="https://linkedin.com/in/you"
-                    className="mt-1.5 block w-full rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm placeholder-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all duration-200 disabled:opacity-50"
-                    disabled={isLoading}
-                  />
-                </div>
+              <div className="animate-fade-in space-y-6">
+                <UnderlineInput
+                  name="companyName"
+                  label="Organization name"
+                  type="text"
+                  required
+                  value={formData.companyName}
+                  onChange={handleChange}
+                  placeholder="Acme Corp"
+                  disabled={isLoading}
+                />
+                <UnderlineInput
+                  name="website"
+                  label="Company domain"
+                  type="url"
+                  value={formData.website}
+                  onChange={handleChange}
+                  placeholder="https://acme.com (or LinkedIn)"
+                  disabled={isLoading}
+                />
+                <UnderlineInput
+                  name="linkedinProfile"
+                  label="LinkedIn profile"
+                  type="url"
+                  value={formData.linkedinProfile}
+                  onChange={handleChange}
+                  placeholder="https://linkedin.com/in/you"
+                  disabled={isLoading}
+                />
               </div>
             )}
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-neutral-700">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="email"
-                className="mt-1.5 block w-full rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm placeholder-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all duration-200 disabled:opacity-50"
-                disabled={isLoading}
-              />
-            </div>
+            <UnderlineInput
+              name="email"
+              label="Email address"
+              type="email"
+              required
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="you@company.com"
+              disabled={isLoading}
+            />
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-neutral-700">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                className="mt-1.5 block w-full rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm placeholder-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all duration-200 disabled:opacity-50"
-                disabled={isLoading}
-              />
-            </div>
+            <UnderlineInput
+              name="password"
+              label="Password"
+              type="password"
+              autoComplete="new-password"
+              required
+              value={formData.password}
+              onChange={handleChange}
+              disabled={isLoading}
+            />
 
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-sm font-medium text-neutral-700"
-              >
-                Confirm password
-              </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                required
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className="mt-1.5 block w-full rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm placeholder-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all duration-200 disabled:opacity-50"
-                disabled={isLoading}
-              />
-            </div>
+            <UnderlineInput
+              name="confirmPassword"
+              label="Confirm password"
+              type="password"
+              autoComplete="new-password"
+              required
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              disabled={isLoading}
+            />
 
             <button
               type="submit"
               disabled={isLoading}
-              className="mt-6 w-full rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-primary-500 hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:hover:scale-100"
+              className="w-full rounded-full bg-[#EB4425] py-3.5 text-sm font-bold text-white shadow-[0_12px_28px_-8px_rgba(235,68,37,0.5)] transition-all hover:bg-[#D93719] active:scale-[0.99] disabled:opacity-60"
             >
               {isLoading ? "Creating account..." : "Create account"}
             </button>
@@ -313,10 +296,7 @@ export default function RegisterPage() {
 
           <p className="mt-8 text-center text-sm text-neutral-500">
             Already have an account?{" "}
-            <Link
-              href="/login"
-              className="font-semibold text-primary-600 hover:text-primary-500 transition-colors"
-            >
+            <Link href="/login" className="font-semibold text-[#EB4425] hover:text-[#B51D00]">
               Sign in
             </Link>
           </p>

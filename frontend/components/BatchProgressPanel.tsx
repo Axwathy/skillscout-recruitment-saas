@@ -42,7 +42,7 @@ export function BatchProgressPanel({
   const hasFailures = progress.failed_count > 0;
 
   return (
-    <section className="rounded-lg border border-neutral-200 bg-white p-5 shadow-panel">
+    <section className="glass-panel rounded-lg p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-neutral-900">
@@ -95,7 +95,7 @@ export function BatchProgressPanel({
               {onRetry && <th className="px-3 py-2">Action</th>}
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-100">
+          <tbody className="divide-y divide-neutral-200/70">
             {progress.items.map((item) => (
               <tr key={item.id}>
                 <td className="px-3 py-3 font-medium text-neutral-900">{item.label}</td>

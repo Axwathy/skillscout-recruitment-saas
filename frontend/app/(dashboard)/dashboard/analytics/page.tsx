@@ -1,10 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ElementType } from "react";
 import dynamic from "next/dynamic";
-import { Download, ImageDown } from "lucide-react";
+import {
+  BadgeCheck,
+  Briefcase,
+  ChevronDown,
+  Clock3,
+  Download,
+  ImageDown,
+  Sparkles,
+  Users,
+} from "lucide-react";
 
 import { getAnalyticsDashboard, getAnalyticsExport } from "@/lib/analytics";
+import { RadialGrowthChart } from "@/components/ui/RadialGrowthChart";
 import type {
   AnalyticsDashboardResponse,
   AnalyticsSeriesPoint,
@@ -20,7 +30,7 @@ const STAGE_LABELS: Record<string, string> = {
   hires: "Hires",
 };
 
-const FUNNEL_COLORS = ["#2563eb", "#7c3aed", "#0891b2", "#d97706", "#059669"];
+const FUNNEL_COLORS = ["#EB4425", "#D93719", "#B51D00", "#8E1500", "#3E0400"];
 
 const ResponsiveContainer = dynamic(
   () => import("recharts").then((mod) => mod.ResponsiveContainer),
@@ -30,7 +40,6 @@ const BarChart = dynamic(() => import("recharts").then((mod) => mod.BarChart), {
   ssr: false,
 });
 const Bar = dynamic(() => import("recharts").then((mod) => mod.Bar), { ssr: false });
-const Cell = dynamic(() => import("recharts").then((mod) => mod.Cell), { ssr: false });
 const LabelList = dynamic(() => import("recharts").then((mod) => mod.LabelList), {
   ssr: false,
 });
@@ -129,7 +138,7 @@ function Sparkline({
           <Line
             type="monotone"
             dataKey={dataKey}
-            stroke="#2563eb"
+            stroke="#EB4425"
             strokeWidth={2}
             dot={false}
           />
@@ -146,6 +155,7 @@ function MetricCard({
   trend,
   series,
   seriesKey,
+  icon: Icon,
 }: {
   label: string;
   value: string;
@@ -153,6 +163,7 @@ function MetricCard({
   trend?: number | null;
   series?: AnalyticsSeriesPoint[];
   seriesKey?: "applications" | "hires";
+  icon?: ElementType;
 }) {
   const trendText = formatTrend(trend);
   const trendTone =
@@ -163,15 +174,20 @@ function MetricCard({
         : "text-danger-600";
 
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-panel">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">{label}</p>
-          <p className="mt-1 text-2xl font-bold text-neutral-900">{value}</p>
-        </div>
-        {trendText && <span className={`text-xs font-semibold ${trendTone}`}>{trendText}</span>}
+    <div className="rounded-[20px] border border-neutral-200/70 bg-white p-5 shadow-glass">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-neutral-400">{label}</p>
+        {Icon && (
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EB4425]/10 text-[#EB4425]">
+            <Icon className="h-4 w-4" />
+          </span>
+        )}
       </div>
-      {hint && <p className="mt-0.5 text-xs text-neutral-400">{hint}</p>}
+      <div className="mt-3 flex items-end gap-2">
+        <p className="text-3xl font-bold tracking-tight text-neutral-900">{value}</p>
+        {trendText && <span className={`pb-1 text-xs font-semibold ${trendTone}`}>{trendText}</span>}
+      </div>
+      {hint && <p className="text-xs text-neutral-400">{hint}</p>}
       {series && seriesKey && <Sparkline data={series} dataKey={seriesKey} />}
     </div>
   );
@@ -213,7 +229,6 @@ export default function AnalyticsPage() {
   const [dashboard, setDashboard] = useState<AnalyticsDashboardResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const funnelRef = useRef<HTMLDivElement | null>(null);
   const timeToHireRef = useRef<HTMLDivElement | null>(null);
   const sourcesRef = useRef<HTMLDivElement | null>(null);
 
@@ -252,14 +267,6 @@ export default function AnalyticsPage() {
   const sources = dashboard?.sources;
   const teamActivity = dashboard?.team_activity;
 
-  const funnelData =
-    funnel?.stages.map((stage, index) => ({
-      name: STAGE_LABELS[stage.stage] ?? stage.stage,
-      count: stage.count,
-      conversion: stage.conversion_from_prior,
-      fill: FUNNEL_COLORS[index % FUNNEL_COLORS.length],
-    })) ?? [];
-
   const tthData =
     timeToHire?.by_job
       .filter((job) => job.average_days !== null)
@@ -283,32 +290,74 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">Analytics</h1>
-          <p className="mt-1 text-sm text-neutral-500">
+      {/* Hero + big radial chart with floating funnel card */}
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <div className="relative z-10">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EB4425]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#EB4425]">
+            <Sparkles className="h-3 w-3" /> KPIs &amp; Analytics
+          </span>
+          <h1 className="mt-4 text-4xl font-bold tracking-tight text-neutral-900 sm:text-5xl">
+            Insights
+          </h1>
+          <p className="mt-3 max-w-md text-base text-neutral-500">
             Pipeline funnel, source performance, team activity, and hiring KPIs.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <PanelActions onCsv={() => handleCsv("overview")} />
-          <div className="flex flex-wrap gap-1 rounded-lg border border-neutral-200 bg-white p-1">
-            {PRESETS.map((preset) => (
-              <button
-                key={preset.label}
-                type="button"
-                onClick={() => setPresetDays(preset.days)}
-                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                  presetDays === preset.days
-                    ? "bg-primary-600 text-white"
-                    : "text-neutral-600 hover:bg-neutral-50"
-                }`}
-              >
-                {preset.label}
-              </button>
-            ))}
+
+        <div className="relative h-[300px]">
+          <RadialGrowthChart
+            axisStart="Applications"
+            axisEnd="Hires"
+            caption="Pipeline Funnel Conversion"
+            cornerLabel="Q1"
+          />
+
+          {/* Floating funnel card overlapping the chart */}
+          <div className="absolute right-0 top-0 z-10 w-56 rounded-2xl border border-neutral-200/70 bg-white p-4 shadow-glass">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-neutral-900">Pipeline Funnel</h2>
+              <ChevronDown className="h-4 w-4 rotate-180 text-neutral-400" />
+            </div>
+            <div className="mt-3 space-y-2">
+              {(funnel?.stages ?? []).slice(0, 4).map((stage, i) => (
+                <div key={stage.stage} className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2 text-neutral-600">
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: FUNNEL_COLORS[i % FUNNEL_COLORS.length] }}
+                    />
+                    {STAGE_LABELS[stage.stage] ?? stage.stage}
+                  </span>
+                  <span className="font-semibold text-neutral-400">({stage.count})</span>
+                </div>
+              ))}
+              {(!funnel || funnel.stages.length === 0) && (
+                <p className="text-sm text-neutral-400">No data yet.</p>
+              )}
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* Toolbar: date range + export */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-1 rounded-full border border-neutral-200 bg-white p-1">
+          {PRESETS.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => setPresetDays(preset.days)}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                presetDays === preset.days
+                  ? "bg-[#EB4425] text-white"
+                  : "text-neutral-600 hover:bg-neutral-50"
+              }`}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+        <PanelActions onCsv={() => handleCsv("overview")} />
       </div>
 
       {error && (
@@ -328,17 +377,20 @@ export default function AnalyticsPage() {
               trend={overview?.trends.total_applications}
               series={overview?.series}
               seriesKey="applications"
+              icon={Users}
             />
             <MetricCard
               label="Open positions"
               value={String(overview?.open_positions ?? 0)}
               trend={overview?.trends.open_positions}
+              icon={Briefcase}
             />
             <MetricCard
               label="Avg time to hire"
               value={avgTth}
               hint={`${overview?.hires ?? 0} hire${(overview?.hires ?? 0) === 1 ? "" : "s"}`}
               trend={overview?.trends.average_time_to_hire_days}
+              icon={Clock3}
             />
             <MetricCard
               label="Offer acceptance"
@@ -347,65 +399,12 @@ export default function AnalyticsPage() {
               trend={overview?.trends.offer_acceptance_rate}
               series={overview?.series}
               seriesKey="hires"
+              icon={BadgeCheck}
             />
           </div>
 
-          <section className="rounded-lg border border-neutral-200 bg-white p-5 shadow-panel">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold text-neutral-900">Pipeline funnel</h2>
-                <p className="mt-1 text-sm text-neutral-500">
-                  Candidates that reached each stage, with prior-stage conversion.
-                </p>
-              </div>
-              <PanelActions
-                onCsv={() => handleCsv("funnel")}
-                onPng={() => downloadChartPng(funnelRef.current, "analytics-funnel.png")}
-              />
-            </div>
-            <div ref={funnelRef} className="mt-4 h-72 w-full">
-              {funnelData.every((d) => d.count === 0) ? (
-                <p className="py-20 text-center text-sm text-neutral-400">No applications yet.</p>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={funnelData} layout="vertical" margin={{ left: 24, right: 32 }}>
-                    <XAxis type="number" allowDecimals={false} stroke="#9ca3af" fontSize={12} />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      width={90}
-                      stroke="#9ca3af"
-                      fontSize={12}
-                    />
-                    <Tooltip
-                      formatter={(value, _name, item) => {
-                        const conversion = (
-                          item?.payload as { conversion?: number | null } | undefined
-                        )?.conversion;
-                        return [
-                          `${value}${
-                            conversion != null
-                              ? ` - ${Math.round(conversion * 100)}% of prior`
-                              : ""
-                          }`,
-                          "Candidates",
-                        ];
-                      }}
-                    />
-                    <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                      {funnelData.map((entry) => (
-                        <Cell key={entry.name} fill={entry.fill} />
-                      ))}
-                      <LabelList dataKey="count" position="right" fontSize={12} />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </section>
-
           <section className="grid gap-6 xl:grid-cols-2">
-            <div className="rounded-lg border border-neutral-200 bg-white p-5 shadow-panel">
+            <div className="glass-panel rounded-lg p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="text-base font-semibold text-neutral-900">Time to hire</h2>
@@ -431,7 +430,7 @@ export default function AnalyticsPage() {
                       <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} />
                       <YAxis stroke="#9ca3af" fontSize={12} />
                       <Tooltip formatter={(value) => [`${value} days`, "Avg time to hire"]} />
-                      <Bar dataKey="days" fill="#2563eb" radius={[4, 4, 0, 0]}>
+                      <Bar dataKey="days" fill="#EB4425" radius={[4, 4, 0, 0]}>
                         <LabelList dataKey="days" position="top" fontSize={12} />
                       </Bar>
                     </BarChart>
@@ -440,7 +439,7 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-neutral-200 bg-white p-5 shadow-panel">
+            <div className="glass-panel rounded-lg p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="text-base font-semibold text-neutral-900">
@@ -466,8 +465,8 @@ export default function AnalyticsPage() {
                       <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} />
                       <YAxis stroke="#9ca3af" fontSize={12} allowDecimals={false} />
                       <Tooltip />
-                      <Bar dataKey="applications" fill="#7c3aed" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="hires" fill="#059669" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="applications" fill="#EB4425" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="hires" fill="#16A34A" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -476,7 +475,7 @@ export default function AnalyticsPage() {
             </div>
           </section>
 
-          <section className="rounded-lg border border-neutral-200 bg-white p-5 shadow-panel">
+          <section className="glass-panel rounded-lg p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="text-base font-semibold text-neutral-900">Team activity</h2>

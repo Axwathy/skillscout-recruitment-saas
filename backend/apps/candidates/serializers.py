@@ -112,7 +112,7 @@ class ResumeUploadSerializer(serializers.Serializer):
 
 class CandidateSerializer(serializers.ModelSerializer):
     resumes = ResumeSerializer(many=True, read_only=True)
-    
+
     class Meta:
         model = Candidate
         fields = (
@@ -123,10 +123,42 @@ class CandidateSerializer(serializers.ModelSerializer):
             "phone",
             "linkedin_url",
             "github_url",
+            "state",
+            "country",
+            "years_of_experience",
+            "institution",
+            "cgpa",
+            "skills",
+            "projects",
+            "experience_entries",
+            "certifications",
             "resumes",
             "created_at",
         )
         read_only_fields = ("id", "created_at", "resumes")
+
+
+class CandidateProfileUpdateSerializer(serializers.ModelSerializer):
+    """Writable fields a candidate may edit on their own profile."""
+
+    class Meta:
+        model = Candidate
+        fields = (
+            "first_name",
+            "last_name",
+            "phone",
+            "linkedin_url",
+            "github_url",
+            "state",
+            "country",
+            "years_of_experience",
+            "institution",
+            "cgpa",
+            "skills",
+            "projects",
+            "experience_entries",
+            "certifications",
+        )
 
 
 class CandidateNoteSerializer(serializers.ModelSerializer):

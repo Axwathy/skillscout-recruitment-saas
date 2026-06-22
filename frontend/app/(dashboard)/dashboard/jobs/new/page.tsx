@@ -46,7 +46,7 @@ export default function CreateJobPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-neutral-900">Create job</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-neutral-900">Create job</h1>
         <p className="mt-1 text-sm text-neutral-600">
           Start in draft, then publish when the posting is ready.
         </p>
@@ -60,7 +60,7 @@ export default function CreateJobPage() {
 
       <form
         onSubmit={handleSubmit}
-        className="space-y-5 rounded-md border border-neutral-200 bg-white p-6 shadow-panel"
+        className="glass-panel space-y-5 rounded-lg p-6"
       >
         {/* Title */}
         <label className="block">
@@ -69,7 +69,7 @@ export default function CreateJobPage() {
             value={form.title}
             onChange={(e) => updateField("title", e.target.value)}
             required
-            className="mt-1 h-10 w-full rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-primary-500"
+            className="mt-1.5 h-11 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white"
           />
         </label>
 
@@ -81,7 +81,7 @@ export default function CreateJobPage() {
               value={form.location}
               onChange={(e) => updateField("location", e.target.value)}
               required
-              className="mt-1 h-10 w-full rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-primary-500"
+              className="mt-1.5 h-11 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white"
             />
           </label>
 
@@ -92,7 +92,7 @@ export default function CreateJobPage() {
               value={form.department}
               onChange={(e) => updateField("department", e.target.value)}
               placeholder="e.g. Engineering, Sales, HR"
-              className="mt-1 h-10 w-full rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-primary-500"
+              className="mt-1.5 h-11 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white"
             />
           </label>
 
@@ -102,7 +102,7 @@ export default function CreateJobPage() {
             <select
               value={form.employment_type}
               onChange={(e) => updateField("employment_type", e.target.value as EmploymentType)}
-              className="mt-1 h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-primary-500"
+              className="mt-1.5 h-11 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-900 focus:bg-white"
             >
               <option value="full_time">Full time</option>
               <option value="part_time">Part time</option>
@@ -117,7 +117,7 @@ export default function CreateJobPage() {
             <select
               value={form.remote_policy}
               onChange={(e) => updateField("remote_policy", e.target.value as RemotePolicy)}
-              className="mt-1 h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-primary-500"
+              className="mt-1.5 h-11 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-900 focus:bg-white"
             >
               <option value="onsite">On-site</option>
               <option value="hybrid">Hybrid</option>
@@ -133,7 +133,7 @@ export default function CreateJobPage() {
             value={form.salary_range}
             onChange={(e) => updateField("salary_range", e.target.value)}
             placeholder="$120k–$160k"
-            className="mt-1 h-10 w-full rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-primary-500"
+            className="mt-1.5 h-11 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white"
           />
         </label>
 
@@ -145,7 +145,7 @@ export default function CreateJobPage() {
             onChange={(e) => updateField("description", e.target.value)}
             required
             rows={6}
-            className="mt-1 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-primary-500"
+            className="mt-1.5 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 py-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white"
           />
         </label>
 
@@ -158,7 +158,7 @@ export default function CreateJobPage() {
             required
             rows={5}
             placeholder="List required and preferred skills, experience, and qualifications…"
-            className="mt-1 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-primary-500"
+            className="mt-1.5 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 py-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white"
           />
         </label>
 
@@ -166,7 +166,7 @@ export default function CreateJobPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="inline-flex h-10 items-center gap-2 rounded-md bg-primary-600 px-4 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50"
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary-600 px-6 text-sm font-semibold text-white transition-all hover:bg-primary-700 hover:shadow-accent disabled:opacity-50"
           >
             <Save className="h-4 w-4" aria-hidden="true" />
             {isSubmitting ? "Creating..." : "Create job"}

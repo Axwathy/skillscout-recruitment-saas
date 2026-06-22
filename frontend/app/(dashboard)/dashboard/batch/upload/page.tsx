@@ -84,7 +84,7 @@ export default function BatchUploadPage() {
       </Link>
 
       <div>
-        <h1 className="text-2xl font-semibold text-neutral-900">Bulk resume upload</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-neutral-900">Bulk resume upload</h1>
         <p className="mt-1 text-sm text-neutral-600">
           Upload multiple resumes to one job and track parsing, candidate creation, and scoring.
         </p>
@@ -98,14 +98,14 @@ export default function BatchUploadPage() {
 
       <form
         onSubmit={handleSubmit}
-        className="rounded-lg border border-neutral-200 bg-white p-5 shadow-panel"
+        className="glass-panel rounded-lg p-5"
       >
         <label className="block">
           <span className="text-sm font-medium text-neutral-700">Target job</span>
           <select
             value={jobId}
             onChange={(event) => setJobId(event.target.value)}
-            className="mt-1 h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-primary-500"
+            className="mt-1.5 h-11 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-900 focus:bg-white"
           >
             {jobs.map((job) => (
               <option key={job.id} value={job.id}>
@@ -115,7 +115,7 @@ export default function BatchUploadPage() {
           </select>
         </label>
 
-        <label className="mt-5 flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-neutral-300 bg-neutral-50 px-4 py-10 text-center hover:border-primary-400 hover:bg-primary-50/40">
+        <label className="mt-5 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-300 bg-white/50 px-4 py-10 text-center transition-colors hover:border-primary-400 hover:bg-primary-50/40">
           <input
             type="file"
             multiple
@@ -135,7 +135,7 @@ export default function BatchUploadPage() {
             {files.map((file, index) => (
               <div
                 key={`${file.name}:${file.size}:${index}`}
-                className="flex items-center justify-between gap-3 rounded-md border border-neutral-200 px-3 py-2"
+                className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white/60 px-3 py-2"
               >
                 <div className="flex min-w-0 items-center gap-2">
                   <FileText className="h-4 w-4 shrink-0 text-neutral-500" />
@@ -162,7 +162,7 @@ export default function BatchUploadPage() {
         <button
           type="submit"
           disabled={!jobId || files.length === 0 || isSubmitting}
-          className="mt-5 inline-flex h-10 items-center justify-center rounded-md bg-primary-600 px-4 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50"
+          className="mt-5 inline-flex h-11 items-center justify-center rounded-xl bg-primary-600 px-6 text-sm font-semibold text-white transition-all hover:bg-primary-700 hover:shadow-accent disabled:opacity-50"
         >
           {isSubmitting ? "Starting..." : "Start bulk upload"}
         </button>

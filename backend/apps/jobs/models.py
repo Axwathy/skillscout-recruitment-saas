@@ -123,3 +123,8 @@ class Job(models.Model):
     def archive(self) -> None:
         self.status = self.Status.ARCHIVED
         self.save(update_fields=["status", "updated_at"])
+
+    def restore(self) -> None:
+        """Bring an archived/closed job back to draft so it can be re-published."""
+        self.status = self.Status.DRAFT
+        self.save(update_fields=["status", "updated_at"])

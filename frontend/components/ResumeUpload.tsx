@@ -123,7 +123,7 @@ export function ResumeUpload({
     <div className="w-full space-y-4">
       <div
         {...getRootProps()}
-        className={`group relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-12 text-center transition-all duration-200 cursor-pointer ${
+        className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 text-center transition-all duration-200 ${
           isDragActive
             ? "border-primary-500 bg-primary-50"
             : "border-neutral-300 bg-neutral-50/50 hover:border-primary-400 hover:bg-neutral-50"

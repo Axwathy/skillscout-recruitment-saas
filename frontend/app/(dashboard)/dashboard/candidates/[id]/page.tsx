@@ -2,17 +2,23 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  Award,
   BarChart3,
   BriefcaseBusiness,
   Clock3,
   ExternalLink,
   FileText,
+  FolderGit2,
+  GraduationCap,
   Mail,
+  MapPin,
   MessageSquareText,
+  PartyPopper,
   Phone,
+  Sparkles,
   Trash2,
 } from "lucide-react";
 
@@ -21,6 +27,7 @@ import { isUnauthorizedError } from "@/lib/api";
 import { getResumeFile } from "@/lib/applications";
 import {
   createCandidateNote,
+  deleteCandidate,
   deleteCandidateNote,
   getRecruiterCandidateProfile,
 } from "@/lib/candidate";
@@ -34,10 +41,11 @@ import type {
 } from "@/types/candidate";
 import type { ApplicationStatus, ScoreValue } from "@/types/jobs";
 
-type ProfileTab = "overview" | "resume" | "scores" | "activity" | "notes";
+type ProfileTab = "overview" | "profile" | "resume" | "scores" | "activity" | "notes";
 
 const TABS: Array<{ id: ProfileTab; label: string }> = [
   { id: "overview", label: "Overview" },
+  { id: "profile", label: "Profile" },
   { id: "resume", label: "Resume" },
   { id: "scores", label: "Scores" },
   { id: "activity", label: "Activity" },
@@ -210,12 +218,14 @@ function ResumeSummary({
 
 export default function RecruiterCandidateProfilePage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const [profile, setProfile] = useState<RecruiterCandidateProfile | null>(null);
   const [activeTab, setActiveTab] = useState<ProfileTab>("overview");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [noteBody, setNoteBody] = useState("");
   const [isSavingNote, setIsSavingNote] = useState(false);
+  const [dismissedHire, setDismissedHire] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -273,6 +283,21 @@ export default function RecruiterCandidateProfilePage() {
     }
   }
 
+  async function handleDeleteCandidate() {
+    if (!profile) return;
+    const confirmed = window.confirm(
+      `Delete ${candidateName(profile)} and all of their data (applications, resumes, notes)? This cannot be undone.`,
+    );
+    if (!confirmed) return;
+    try {
+      await deleteCandidate(profile.candidate.id);
+      router.push("/dashboard/candidates");
+    } catch (err) {
+      if (isUnauthorizedError(err)) return;
+      alert("Failed to delete candidate.");
+    }
+  }
+
   async function handleResumeFile(resume: Resume, mode: "view" | "download") {
     const url = mode === "view" ? resume.view_url : resume.download_url;
     if (!url) return;
@@ -327,6 +352,7 @@ export default function RecruiterCandidateProfilePage() {
 
   const latestApplication = profile.latest_application;
   const parsedResume = profile.parsed_resume ?? profile.latest_resume?.parsed_resume ?? null;
+  const isHired = profile.applications.some((application) => application.status === "hired");
 
   return (
     <div className="space-y-6">
@@ -338,10 +364,45 @@ export default function RecruiterCandidateProfilePage() {
         Back to Candidates
       </Link>
 
-      <section className="rounded-xl border border-neutral-200 bg-white p-6 shadow-panel">
+      {/* Post-hire data-retention guide */}
+      {isHired && !dismissedHire && (
+        <div className="flex flex-col gap-3 rounded-[20px] border border-[#EB4425]/30 bg-[#EB4425]/5 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EB4425]/10 text-[#EB4425]">
+              <PartyPopper className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-neutral-900">This candidate was hired</p>
+              <p className="mt-0.5 text-sm text-neutral-500">
+                Review data retention — keep their record for onboarding and audit, or remove their
+                data once it&apos;s no longer needed.
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <button
+              type="button"
+              onClick={() => setDismissedHire(true)}
+              className="rounded-full border border-neutral-300 bg-white px-5 py-2.5 text-sm font-semibold text-neutral-700 transition-colors hover:border-neutral-900"
+            >
+              Keep
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteCandidate}
+              className="inline-flex items-center gap-2 rounded-full bg-[#EB4425] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(235,68,37,0.5)] transition-all hover:bg-[#D93719]"
+            >
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              Delete data
+            </button>
+          </div>
+        </div>
+      )}
+
+      <section className="glass-panel rounded-lg p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-neutral-900">{candidateName(profile)}</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-neutral-900">{candidateName(profile)}</h1>
             <div className="mt-4 flex flex-wrap gap-4">
               <a
                 href={`mailto:${profile.candidate.email}`}
@@ -403,7 +464,7 @@ export default function RecruiterCandidateProfilePage() {
 
       {activeTab === "overview" && (
         <div className="grid gap-6 lg:grid-cols-3">
-          <section className="rounded-xl border border-neutral-200 bg-white p-6 shadow-panel lg:col-span-2">
+          <section className="glass-panel rounded-lg p-6 lg:col-span-2">
             <div className="mb-5 flex items-center gap-2">
               <BriefcaseBusiness className="h-5 w-5 text-primary-600" aria-hidden="true" />
               <h2 className="text-base font-semibold text-neutral-900">Applications</h2>
@@ -435,7 +496,7 @@ export default function RecruiterCandidateProfilePage() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-neutral-200 bg-white p-6 shadow-panel">
+          <section className="glass-panel rounded-lg p-6">
             <div className="mb-5 flex items-center gap-2">
               <Clock3 className="h-5 w-5 text-primary-600" aria-hidden="true" />
               <h2 className="text-base font-semibold text-neutral-900">Recent activity</h2>
@@ -445,9 +506,139 @@ export default function RecruiterCandidateProfilePage() {
         </div>
       )}
 
+      {activeTab === "profile" && (
+        <div className="space-y-6">
+          <section className="glass-panel rounded-lg p-6">
+            <h2 className="mb-4 text-base font-semibold text-neutral-900">Candidate profile</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                {
+                  icon: MapPin,
+                  label: "Location",
+                  value:
+                    [profile.candidate.state, profile.candidate.country].filter(Boolean).join(", ") ||
+                    "Not provided",
+                },
+                {
+                  icon: BriefcaseBusiness,
+                  label: "Years of experience",
+                  value:
+                    profile.candidate.years_of_experience != null &&
+                    String(profile.candidate.years_of_experience).trim() !== ""
+                      ? `${profile.candidate.years_of_experience} yrs`
+                      : "Not provided",
+                },
+                { icon: GraduationCap, label: "Institution", value: profile.candidate.institution || "Not provided" },
+                { icon: GraduationCap, label: "CGPA", value: profile.candidate.cgpa || "Not provided" },
+                { icon: Phone, label: "Phone", value: profile.candidate.phone || "Not provided" },
+                { icon: Mail, label: "Email", value: profile.candidate.email },
+              ].map((row) => (
+                <div
+                  key={row.label}
+                  className="flex items-start gap-3 rounded-xl border border-neutral-200 bg-white/60 p-4"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#EB4425]/10 text-[#EB4425]">
+                    <row.icon className="h-4 w-4" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                      {row.label}
+                    </p>
+                    <p className="mt-1 break-words text-sm font-medium text-neutral-900">{row.value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="glass-panel rounded-lg p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-[#EB4425]" aria-hidden="true" />
+              <h2 className="text-base font-semibold text-neutral-900">Skills</h2>
+            </div>
+            {profile.candidate.skills?.length ? (
+              <div className="flex flex-wrap gap-2">
+                {profile.candidate.skills.map((s) => (
+                  <span
+                    key={s}
+                    className="rounded-full bg-[#EB4425]/10 px-3 py-1 text-sm font-medium text-[#EB4425]"
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-neutral-500">No skills added.</p>
+            )}
+          </section>
+
+          <section className="glass-panel rounded-lg p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <BriefcaseBusiness className="h-5 w-5 text-[#EB4425]" aria-hidden="true" />
+              <h2 className="text-base font-semibold text-neutral-900">Experience</h2>
+            </div>
+            {profile.candidate.experience_entries?.length ? (
+              <div className="space-y-4">
+                {profile.candidate.experience_entries.map((ex, i) => (
+                  <div key={i} className="border-l-2 border-[#EB4425]/30 pl-4">
+                    <p className="text-sm font-semibold text-neutral-900">
+                      {ex.role || "Role"}
+                      {ex.company ? ` · ${ex.company}` : ""}
+                    </p>
+                    {ex.description && <p className="mt-1 text-sm text-neutral-600">{ex.description}</p>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-neutral-500">No experience added.</p>
+            )}
+          </section>
+
+          <section className="glass-panel rounded-lg p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <FolderGit2 className="h-5 w-5 text-[#EB4425]" aria-hidden="true" />
+              <h2 className="text-base font-semibold text-neutral-900">Projects</h2>
+            </div>
+            {profile.candidate.projects?.length ? (
+              <div className="space-y-4">
+                {profile.candidate.projects.map((p, i) => (
+                  <div key={i} className="rounded-xl border border-neutral-200 bg-white/60 p-4">
+                    <p className="text-sm font-semibold text-neutral-900">{p.name || "Project"}</p>
+                    {p.description && <p className="mt-1 text-sm text-neutral-600">{p.description}</p>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-neutral-500">No projects added.</p>
+            )}
+          </section>
+
+          <section className="glass-panel rounded-lg p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <Award className="h-5 w-5 text-[#EB4425]" aria-hidden="true" />
+              <h2 className="text-base font-semibold text-neutral-900">Certifications</h2>
+            </div>
+            {profile.candidate.certifications?.length ? (
+              <div className="flex flex-wrap gap-2">
+                {profile.candidate.certifications.map((c) => (
+                  <span
+                    key={c}
+                    className="rounded-full bg-neutral-100 px-3 py-1 text-sm font-medium text-neutral-700"
+                  >
+                    {c}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-neutral-500">No certifications added.</p>
+            )}
+          </section>
+        </div>
+      )}
+
       {activeTab === "resume" && (
         <div className="grid gap-6 lg:grid-cols-2">
-          <section className="rounded-xl border border-neutral-200 bg-white p-6 shadow-panel">
+          <section className="glass-panel rounded-lg p-6">
             <h2 className="mb-5 text-base font-semibold text-neutral-900">Resumes</h2>
             {allResumes.length === 0 ? (
               <p className="text-sm text-neutral-500">No resume uploaded yet.</p>
@@ -459,7 +650,7 @@ export default function RecruiterCandidateProfilePage() {
               </div>
             )}
           </section>
-          <section className="rounded-xl border border-neutral-200 bg-white p-6 shadow-panel">
+          <section className="glass-panel rounded-lg p-6">
             <h2 className="mb-5 text-base font-semibold text-neutral-900">Parsed profile</h2>
             <ParsedResumePanel parsedResume={parsedResume} />
           </section>
@@ -467,7 +658,7 @@ export default function RecruiterCandidateProfilePage() {
       )}
 
       {activeTab === "scores" && (
-        <section className="rounded-xl border border-neutral-200 bg-white p-6 shadow-panel">
+        <section className="glass-panel rounded-lg p-6">
           <div className="mb-5 flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-primary-600" aria-hidden="true" />
             <h2 className="text-base font-semibold text-neutral-900">Match scores</h2>
@@ -485,14 +676,14 @@ export default function RecruiterCandidateProfilePage() {
       )}
 
       {activeTab === "activity" && (
-        <section className="rounded-xl border border-neutral-200 bg-white p-6 shadow-panel">
+        <section className="glass-panel rounded-lg p-6">
           <h2 className="mb-5 text-base font-semibold text-neutral-900">Activity timeline</h2>
           <ActivityTimeline activity={profile.activity} />
         </section>
       )}
 
       {activeTab === "notes" && (
-        <section className="rounded-xl border border-neutral-200 bg-white p-6 shadow-panel">
+        <section className="glass-panel rounded-lg p-6">
           <div className="mb-5 flex items-center gap-2">
             <MessageSquareText className="h-5 w-5 text-primary-600" aria-hidden="true" />
             <h2 className="text-base font-semibold text-neutral-900">Recruiter notes</h2>
@@ -503,12 +694,12 @@ export default function RecruiterCandidateProfilePage() {
               onChange={(event) => setNoteBody(event.target.value)}
               rows={3}
               placeholder="Add an internal note for this candidate"
-              className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+              className="w-full rounded-xl border border-neutral-200 bg-white/70 px-4 py-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white"
             />
             <button
               type="submit"
               disabled={isSavingNote || !noteBody.trim()}
-              className="inline-flex h-10 items-center justify-center rounded-md bg-primary-600 px-4 text-sm font-semibold text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-primary-600 px-6 text-sm font-semibold text-white transition-all hover:bg-primary-700 hover:shadow-accent disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSavingNote ? "Saving..." : "Add note"}
             </button>

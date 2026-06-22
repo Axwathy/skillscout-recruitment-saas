@@ -22,10 +22,10 @@ const TYPE_LABEL: Record<string, string> = {
 
 const STATUS_TONE: Record<string, string> = {
   pending: "bg-neutral-100 text-neutral-600",
-  running: "bg-primary-50 text-primary-700",
-  completed: "bg-success-600/10 text-success-700",
-  completed_with_errors: "bg-warning-600/10 text-warning-700",
-  failed: "bg-danger-600/10 text-danger-700",
+  running: "bg-[#EB4425]/10 text-[#EB4425]",
+  completed: "bg-emerald-50 text-emerald-700",
+  completed_with_errors: "bg-[#EB4425]/12 text-[#D93719]",
+  failed: "bg-danger-50 text-danger-600",
 };
 
 function formatDate(value: string) {
@@ -110,7 +110,10 @@ export default function BatchHistoryPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">Batch operations</h1>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EB4425]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#EB4425]">
+            Automation
+          </span>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight text-neutral-900">Bulk Screening</h1>
           <p className="mt-1 text-sm text-neutral-600">
             Track bulk uploads, batch scoring, and pipeline actions.
           </p>
@@ -119,14 +122,14 @@ export default function BatchHistoryPage() {
           <button
             type="button"
             onClick={load}
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-700 transition-colors hover:border-neutral-900"
           >
             <RefreshCcw className="h-4 w-4" />
             Refresh
           </button>
           <Link
             href="/dashboard/batch/upload"
-            className="inline-flex h-10 items-center gap-2 rounded-md bg-primary-600 px-4 text-sm font-semibold text-white hover:bg-primary-700"
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-[#EB4425] px-5 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(235,68,37,0.5)] transition-all hover:bg-[#D93719]"
           >
             <UploadCloud className="h-4 w-4" />
             Bulk upload
@@ -140,7 +143,7 @@ export default function BatchHistoryPage() {
         </div>
       )}
 
-      <section className="rounded-lg border border-neutral-200 bg-white p-5 shadow-panel">
+      <section className="glass-panel rounded-[20px] p-5">
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-64 flex-1">
             <h2 className="text-base font-semibold text-neutral-900">Scheduled scoring</h2>
@@ -148,12 +151,12 @@ export default function BatchHistoryPage() {
               Run recurring score refreshes for a published job.
             </p>
           </div>
-          <label className="block">
-            <span className="text-xs font-semibold uppercase text-neutral-500">Job</span>
+          <label className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-400">Job</span>
             <select
               value={scheduleJobId}
               onChange={(event) => setScheduleJobId(event.target.value)}
-              className="mt-1 h-10 rounded-md border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-primary-500"
+              className="h-10 rounded-full border border-neutral-200 bg-white px-4 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-900"
             >
               {jobs.map((job) => (
                 <option key={job.id} value={job.id}>
@@ -162,34 +165,34 @@ export default function BatchHistoryPage() {
               ))}
             </select>
           </label>
-          <label className="block">
-            <span className="text-xs font-semibold uppercase text-neutral-500">Frequency</span>
+          <label className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-400">Frequency</span>
             <select
               value={scheduleFrequency}
               onChange={(event) =>
                 setScheduleFrequency(event.target.value as ScheduledBatchFrequency)
               }
-              className="mt-1 h-10 rounded-md border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-primary-500"
+              className="h-10 rounded-full border border-neutral-200 bg-white px-4 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-900"
             >
               <option value="once">Once</option>
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
             </select>
           </label>
-          <label className="block">
-            <span className="text-xs font-semibold uppercase text-neutral-500">Next run</span>
+          <label className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-400">Next run</span>
             <input
               type="datetime-local"
               value={scheduleRunAt}
               onChange={(event) => setScheduleRunAt(event.target.value)}
-              className="mt-1 h-10 rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-primary-500"
+              className="h-10 rounded-full border border-neutral-200 bg-white px-4 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-900"
             />
           </label>
           <button
             type="button"
             onClick={handleCreateSchedule}
             disabled={!scheduleJobId || !scheduleRunAt || isScheduling}
-            className="inline-flex h-10 items-center rounded-md bg-primary-600 px-4 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50"
+            className="inline-flex h-10 items-center rounded-full bg-[#EB4425]/70 px-6 text-sm font-semibold text-white transition-all hover:bg-[#EB4425] disabled:opacity-50"
           >
             {isScheduling ? "Scheduling..." : "Schedule"}
           </button>
@@ -246,9 +249,9 @@ export default function BatchHistoryPage() {
         )}
       </section>
 
-      <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-panel">
-        <table className="min-w-full divide-y divide-neutral-200">
-          <thead className="bg-neutral-50 text-left text-xs uppercase text-neutral-500">
+      <div className="glass-panel overflow-x-auto rounded-[20px]">
+        <table className="min-w-full divide-y divide-neutral-200/70">
+          <thead className="bg-white/40 text-left text-xs uppercase text-neutral-500">
             <tr>
               <th className="px-4 py-3">Type</th>
               <th className="px-4 py-3">Status</th>
@@ -257,7 +260,7 @@ export default function BatchHistoryPage() {
               <th className="px-4 py-3">Owner</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-200">
+          <tbody className="divide-y divide-neutral-200/70">
             {isLoading ? (
               <tr>
                 <td colSpan={5} className="px-4 py-10 text-center text-sm text-neutral-500">
@@ -276,7 +279,7 @@ export default function BatchHistoryPage() {
                   <td className="px-4 py-4">
                     <Link
                       href={`/dashboard/batch/${batch.id}`}
-                      className="font-medium text-primary-600 hover:text-primary-700"
+                      className="font-semibold text-[#EB4425] hover:text-[#B51D00]"
                     >
                       {TYPE_LABEL[batch.job_type] ?? batch.job_type}
                     </Link>

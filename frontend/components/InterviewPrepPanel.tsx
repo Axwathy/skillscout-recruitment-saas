@@ -120,8 +120,8 @@ export function InterviewPrepPanel({ applicationId }: { applicationId: string })
   }
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white shadow-panel">
-      <div className="flex flex-col gap-3 border-b border-neutral-100 px-6 py-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="glass-panel rounded-lg">
+      <div className="flex flex-col gap-3 border-b border-neutral-200/70 px-6 py-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-base font-semibold text-neutral-900">Interview prep</h2>
           <p className="mt-1 text-sm text-neutral-500">
@@ -132,7 +132,7 @@ export function InterviewPrepPanel({ applicationId }: { applicationId: string })
           type="button"
           onClick={() => handleGenerate(Boolean(questionSet))}
           disabled={isGenerating}
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-primary-700 hover:shadow-accent disabled:opacity-60"
         >
           {isGenerating ? (
             <RefreshCw className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -250,7 +250,7 @@ export function InterviewPrepPanel({ applicationId }: { applicationId: string })
                             }))
                           }
                           placeholder="Add interview note"
-                          className="h-10 flex-1 rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                          className="h-10 flex-1 rounded-xl border border-neutral-200 bg-white/70 px-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white"
                         />
                         <button
                           type="submit"

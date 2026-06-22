@@ -292,6 +292,25 @@ class JobArchiveView(views.APIView):
         return Response(JobSerializer(job).data)
 
 
+class JobRestoreView(views.APIView):
+    permission_classes = [IsVerifiedRecruiter]
+
+    def post(self, request, pk, *args, **kwargs):
+        job = generics.get_object_or_404(
+            Job,
+            pk=pk,
+            organization=get_recruiter_organization(request),
+        )
+        job.restore()
+        AuditLog.log(
+            action="job.restored",
+            user=request.user,
+            entity=job,
+            ip_address=request.META.get("REMOTE_ADDR"),
+        )
+        return Response(JobSerializer(job).data)
+
+
 class EmbeddingBackfillView(views.APIView):
     permission_classes = [IsVerifiedRecruiter]
 

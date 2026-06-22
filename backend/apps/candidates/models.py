@@ -20,6 +20,21 @@ class Candidate(models.Model):
     phone = models.CharField(max_length=50, blank=True)
     linkedin_url = models.URLField(blank=True)
     github_url = models.URLField(blank=True)
+    # Candidate-managed profile fields
+    state = models.CharField(max_length=120, blank=True)
+    country = models.CharField(max_length=120, blank=True)
+    years_of_experience = models.DecimalField(
+        max_digits=4, decimal_places=1, null=True, blank=True
+    )
+    institution = models.CharField(max_length=255, blank=True)
+    cgpa = models.CharField(max_length=20, blank=True)
+    skills = models.JSONField(default=list, blank=True)
+    # projects: list of {"name": str, "description": str}
+    projects = models.JSONField(default=list, blank=True)
+    # experience_entries: list of {"role": str, "company": str, "description": str}
+    experience_entries = models.JSONField(default=list, blank=True)
+    # certifications: list of str
+    certifications = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

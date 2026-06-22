@@ -3,7 +3,15 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { BarChart3, ExternalLink, LockKeyhole, RefreshCw, Save, Trash2 } from "lucide-react";
+import {
+  ArchiveRestore,
+  BarChart3,
+  ExternalLink,
+  LockKeyhole,
+  RefreshCw,
+  Save,
+  Trash2,
+} from "lucide-react";
 
 import { getApplications } from "@/lib/applications";
 import {
@@ -12,6 +20,7 @@ import {
   getJob,
   getRankedCandidates,
   publishJob,
+  restoreJob,
   unpublishJob,
   updateJob,
 } from "@/lib/jobs";
@@ -184,6 +193,13 @@ export default function JobDetailPage() {
     setForm(toForm(updated));
   }
 
+  async function handleRestore() {
+    if (!job) return;
+    const updated = await restoreJob(job.id);
+    setJob(updated);
+    setForm(toForm(updated));
+  }
+
   async function handleClose() {
     if (!job) return;
     const updated = await closeJob(job.id);
@@ -218,7 +234,7 @@ export default function JobDetailPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">{job.title}</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-neutral-900">{job.title}</h1>
           <p className="mt-1 flex items-center gap-2 text-sm text-neutral-600">
             {job.location}
             {job.department ? ` · ${job.department}` : ""}
@@ -266,6 +282,18 @@ export default function JobDetailPage() {
               Public page
             </Link>
           )}
+          {/* Restore */}
+          {job.status === "archived" && (
+            <button
+              type="button"
+              onClick={handleRestore}
+              title="Restore to draft"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-neutral-200 px-4 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
+            >
+              <ArchiveRestore className="h-4 w-4" aria-hidden="true" />
+              Restore
+            </button>
+          )}
           {/* Delete */}
           {job.status !== "archived" && (
             <button
@@ -281,8 +309,8 @@ export default function JobDetailPage() {
       </div>
 
       {/* Ranked candidates section */}
-      <section id="ranked-candidates" className="scroll-mt-6 rounded-md border border-primary-600/20 bg-white shadow-panel">
-        <div className="flex flex-col gap-3 border-b border-neutral-200 bg-primary-50/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <section id="ranked-candidates" className="glass-panel scroll-mt-6 overflow-hidden rounded-lg">
+        <div className="flex flex-col gap-3 border-b border-neutral-200/70 bg-primary-50/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-base font-semibold text-neutral-900">Ranked candidates</h2>
             <p className="mt-1 text-sm text-neutral-500">
@@ -293,7 +321,7 @@ export default function JobDetailPage() {
             type="button"
             onClick={handleRefreshRankings}
             disabled={isRanking}
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary-600 px-3 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-60"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 text-sm font-semibold text-white transition-all hover:bg-primary-700 hover:shadow-accent disabled:opacity-60"
           >
             {isRanking ? <RefreshCw className="h-4 w-4 animate-spin" /> : <BarChart3 className="h-4 w-4" />}
             {isRanking ? "Calculating..." : "Refresh ranking"}
@@ -371,7 +399,7 @@ export default function JobDetailPage() {
 
       <form
         onSubmit={handleSave}
-        className="space-y-5 rounded-md border border-neutral-200 bg-white p-6 shadow-panel"
+        className="glass-panel space-y-5 rounded-lg p-6"
       >
         {/* Title */}
         <label className="block sm:col-span-2">
@@ -380,7 +408,7 @@ export default function JobDetailPage() {
             value={form.title}
             onChange={(e) => updateField("title", e.target.value)}
             disabled={!isEditable}
-            className="mt-1 h-10 w-full rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-primary-500 disabled:bg-neutral-50 disabled:text-neutral-400"
+            className="mt-1.5 h-11 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white disabled:bg-neutral-100 disabled:text-neutral-400"
           />
         </label>
 
@@ -392,7 +420,7 @@ export default function JobDetailPage() {
               value={form.location}
               onChange={(e) => updateField("location", e.target.value)}
               disabled={!isEditable}
-              className="mt-1 h-10 w-full rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-primary-500 disabled:bg-neutral-50 disabled:text-neutral-400"
+              className="mt-1.5 h-11 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white disabled:bg-neutral-100 disabled:text-neutral-400"
             />
           </label>
 
@@ -404,7 +432,7 @@ export default function JobDetailPage() {
               onChange={(e) => updateField("department", e.target.value)}
               disabled={!isEditable}
               placeholder="e.g. Engineering"
-              className="mt-1 h-10 w-full rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-primary-500 disabled:bg-neutral-50 disabled:text-neutral-400"
+              className="mt-1.5 h-11 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white disabled:bg-neutral-100 disabled:text-neutral-400"
             />
           </label>
 
@@ -415,7 +443,7 @@ export default function JobDetailPage() {
               value={form.employment_type}
               onChange={(e) => updateField("employment_type", e.target.value as EmploymentType)}
               disabled={!isEditable}
-              className="mt-1 h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-primary-500 disabled:bg-neutral-50 disabled:text-neutral-400"
+              className="mt-1.5 h-11 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-900 focus:bg-white disabled:bg-neutral-100 disabled:text-neutral-400"
             >
               <option value="full_time">Full time</option>
               <option value="part_time">Part time</option>
@@ -431,7 +459,7 @@ export default function JobDetailPage() {
               value={form.remote_policy}
               onChange={(e) => updateField("remote_policy", e.target.value as RemotePolicy)}
               disabled={!isEditable}
-              className="mt-1 h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-primary-500 disabled:bg-neutral-50 disabled:text-neutral-400"
+              className="mt-1.5 h-11 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-900 focus:bg-white disabled:bg-neutral-100 disabled:text-neutral-400"
             >
               <option value="onsite">On-site</option>
               <option value="hybrid">Hybrid</option>
@@ -447,7 +475,7 @@ export default function JobDetailPage() {
             value={form.salary_range}
             onChange={(e) => updateField("salary_range", e.target.value)}
             disabled={!isEditable}
-            className="mt-1 h-10 w-full rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-primary-500 disabled:bg-neutral-50 disabled:text-neutral-400"
+            className="mt-1.5 h-11 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white disabled:bg-neutral-100 disabled:text-neutral-400"
           />
         </label>
 
@@ -459,7 +487,7 @@ export default function JobDetailPage() {
             onChange={(e) => updateField("description", e.target.value)}
             disabled={!isEditable}
             rows={6}
-            className="mt-1 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-primary-500 disabled:bg-neutral-50 disabled:text-neutral-400"
+            className="mt-1.5 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 py-3 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-900 focus:bg-white disabled:bg-neutral-100 disabled:text-neutral-400"
           />
         </label>
 
@@ -471,7 +499,7 @@ export default function JobDetailPage() {
             onChange={(e) => updateField("requirements", e.target.value)}
             disabled={!isEditable}
             rows={5}
-            className="mt-1 w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-primary-500 disabled:bg-neutral-50 disabled:text-neutral-400"
+            className="mt-1.5 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 py-3 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-900 focus:bg-white disabled:bg-neutral-100 disabled:text-neutral-400"
           />
         </label>
 
@@ -480,7 +508,7 @@ export default function JobDetailPage() {
           <button
             type="submit"
             disabled={isSaving || !isEditable}
-            className="inline-flex h-10 items-center gap-2 rounded-md bg-primary-600 px-4 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50"
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary-600 px-6 text-sm font-semibold text-white transition-all hover:bg-primary-700 hover:shadow-accent disabled:opacity-50"
           >
             <Save className="h-4 w-4" aria-hidden="true" />
             {isSaving ? "Saving..." : "Save changes"}
@@ -489,8 +517,8 @@ export default function JobDetailPage() {
       </form>
 
       {/* Applications section */}
-      <section className="rounded-md border border-neutral-200 bg-white shadow-panel">
-        <div className="border-b border-neutral-200 px-4 py-3">
+      <section className="glass-panel overflow-hidden rounded-lg">
+        <div className="border-b border-neutral-200/70 px-4 py-3">
           <h2 className="text-base font-semibold text-neutral-900">
             Applications
             <span className="ml-2 inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-700">

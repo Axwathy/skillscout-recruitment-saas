@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: {
-    default: "RecruitAI",
-    template: "%s | RecruitAI",
+    default: "SkillScout",
+    template: "%s | SkillScout",
   },
   description:
-    "AI-assisted recruitment workspace where math decides and AI explains.",
+    "AI-assisted recruitment platform — math ranks, AI explains, you decide.",
 };
 
 export default function PublicLayout({
