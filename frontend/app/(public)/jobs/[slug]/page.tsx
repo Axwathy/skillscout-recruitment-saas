@@ -145,14 +145,14 @@ export default function PublicJobDetailPage() {
 
   return (
     <main className="min-h-screen bg-neutral-50">
-      <header className="border-b border-neutral-200 bg-white">
+      <header className="border-b border-neutral-200/70 bg-white/70 backdrop-blur-glass">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href="/jobs" className="text-sm font-medium text-neutral-700 hover:text-neutral-900">
             Back to jobs
           </Link>
           <Link
             href="/login"
-            className="rounded-md px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+            className="rounded-xl px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
           >
             Recruiter sign in
           </Link>
@@ -170,14 +170,14 @@ export default function PublicJobDetailPage() {
             </p>
           </div>
 
-          <section className="rounded-md border border-neutral-200 bg-white p-6 shadow-panel">
+          <section className="glass-panel rounded-lg p-6">
             <h2 className="text-base font-semibold text-neutral-900">Description</h2>
             <p className="mt-3 whitespace-pre-line text-sm leading-6 text-neutral-700">
               {job.description}
             </p>
           </section>
 
-          <section className="rounded-md border border-neutral-200 bg-white p-6 shadow-panel">
+          <section className="glass-panel rounded-lg p-6">
             <h2 className="text-base font-semibold text-neutral-900">Requirements</h2>
             <p className="mt-3 whitespace-pre-line text-sm leading-6 text-neutral-700">
               {job.requirements}
@@ -185,7 +185,7 @@ export default function PublicJobDetailPage() {
           </section>
         </article>
 
-        <aside className="h-fit rounded-md border border-neutral-200 bg-white p-6 shadow-panel">
+        <aside className="glass-panel h-fit rounded-lg p-6">
           <h2 className="text-base font-semibold text-neutral-900">Apply</h2>
           {success && (
             <div className="mt-4 rounded-md border border-success-600/20 bg-success-600/10 px-3 py-2 text-sm text-success-600">
@@ -206,7 +206,7 @@ export default function PublicJobDetailPage() {
                   value={form.first_name}
                   onChange={(event) => updateField("first_name", event.target.value)}
                   required
-                  className="mt-1 h-10 w-full rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-primary-500"
+                  className="mt-1.5 h-11 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-900 focus:bg-white"
                 />
               </label>
               <label className="block">
@@ -215,7 +215,7 @@ export default function PublicJobDetailPage() {
                   value={form.last_name}
                   onChange={(event) => updateField("last_name", event.target.value)}
                   required
-                  className="mt-1 h-10 w-full rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-primary-500"
+                  className="mt-1.5 h-11 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-900 focus:bg-white"
                 />
               </label>
             </div>
@@ -257,7 +257,7 @@ export default function PublicJobDetailPage() {
             </label>
             <div>
               <span className="text-sm font-medium text-neutral-700">Resume</span>
-              <label className="mt-1 flex cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-neutral-300 bg-neutral-50 px-4 py-6 text-center transition hover:border-primary-400 hover:bg-primary-50/40">
+              <label className="mt-1.5 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-300 bg-white/50 px-4 py-6 text-center transition hover:border-primary-400 hover:bg-primary-50/40">
                 <input
                   key={resumeInputKey}
                   type="file"
@@ -273,7 +273,7 @@ export default function PublicJobDetailPage() {
                 <span className="mt-1 text-xs text-neutral-500">PDF or DOCX, max 10MB</span>
               </label>
               {resumeFile && (
-                <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-neutral-200 bg-white px-3 py-2">
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white/60 px-3 py-2">
                   <div className="flex min-w-0 items-center gap-2">
                     <FileText className="h-4 w-4 shrink-0 text-neutral-500" aria-hidden="true" />
                     <div className="min-w-0">
@@ -297,7 +297,7 @@ export default function PublicJobDetailPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary-600 px-4 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 text-sm font-semibold text-white transition-all hover:bg-primary-700 hover:shadow-accent disabled:opacity-50"
             >
               <Send className="h-4 w-4" aria-hidden="true" />
               {isSubmitting ? "Submitting..." : "Submit application"}

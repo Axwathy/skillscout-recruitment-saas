@@ -53,7 +53,7 @@ export default function NotificationPreferencesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-neutral-900">Notification preferences</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-neutral-900">Notification preferences</h1>
         <p className="mt-1 text-sm text-neutral-500">
           Choose how you want to be notified for each type of event.
         </p>
@@ -68,10 +68,10 @@ export default function NotificationPreferencesPage() {
       {isLoading ? (
         <p className="py-16 text-center text-sm text-neutral-400">Loading…</p>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-panel">
+        <div className="glass-panel overflow-x-auto rounded-lg">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-neutral-100 text-left text-xs uppercase tracking-wide text-neutral-500">
+              <tr className="border-b border-neutral-200/70 text-left text-xs uppercase tracking-wide text-neutral-500">
                 <th className="px-4 py-3 font-semibold">Event</th>
                 <th className="w-28 px-4 py-3 text-center font-semibold">In-app</th>
                 <th className="w-28 px-4 py-3 text-center font-semibold">Email</th>
@@ -79,7 +79,7 @@ export default function NotificationPreferencesPage() {
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.event_type} className="border-b border-neutral-50 last:border-0">
+                <tr key={row.event_type} className="border-b border-neutral-200/60 last:border-0">
                   <td className="px-4 py-3 font-medium text-neutral-800">{row.label}</td>
                   <td className="px-4 py-3 text-center">
                     <input

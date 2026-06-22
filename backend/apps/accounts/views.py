@@ -23,21 +23,23 @@ from .serializers import (
 
 def _set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
     """Set HTTP-only cookies for JWT tokens."""
+    samesite = settings.AUTH_COOKIE_SAMESITE
+    secure = settings.AUTH_COOKIE_SECURE
     response.set_cookie(
         "access",
         access_token,
         max_age=settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds(),
         httponly=True,
-        samesite="Lax",
-        secure=not settings.DEBUG,
+        samesite=samesite,
+        secure=secure,
     )
     response.set_cookie(
         "refresh",
         refresh_token,
         max_age=settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds(),
         httponly=True,
-        samesite="Lax",
-        secure=not settings.DEBUG,
+        samesite=samesite,
+        secure=secure,
     )
 
 

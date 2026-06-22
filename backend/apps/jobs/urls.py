@@ -23,4 +23,5 @@ urlpatterns = [
     path("<uuid:pk>/unpublish/", views.JobUnpublishView.as_view(), name="job-unpublish"),
     path("<uuid:pk>/close/", views.JobCloseView.as_view(), name="job-close"),
     path("<uuid:pk>/archive/", views.JobArchiveView.as_view(), name="job-archive"),
+    path("<uuid:pk>/restore/", views.JobRestoreView.as_view(), name="job-restore"),
 ]

@@ -2,9 +2,26 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Archive, EyeOff, LockKeyhole, Plus, RefreshCcw, Search } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  EyeOff,
+  LockKeyhole,
+  Plus,
+  RefreshCcw,
+  Search,
+  Trash2,
+} from "lucide-react";
 
-import { archiveJob, closeJob, getJobs, publishJob, unpublishJob } from "@/lib/jobs";
+import {
+  archiveJob,
+  closeJob,
+  deleteJob,
+  getJobs,
+  publishJob,
+  restoreJob,
+  unpublishJob,
+} from "@/lib/jobs";
 import type { Job, JobStatus } from "@/types/jobs";
 
 const statusLabels: Record<JobStatus, string> = {
@@ -115,18 +132,40 @@ export default function JobsPage() {
     setJobs((current) => current.map((item) => (item.id === updated.id ? updated : item)));
   }
 
+  async function handleRestore(job: Job) {
+    try {
+      const updated = await restoreJob(job.id);
+      setJobs((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+    } catch {
+      setError("Could not restore that job.");
+    }
+  }
+
+  async function handleDelete(job: Job) {
+    const confirmed = window.confirm(
+      `Delete "${job.title}"? This permanently removes the job and its applications. This cannot be undone.`,
+    );
+    if (!confirmed) return;
+    try {
+      await deleteJob(job.id);
+      setJobs((current) => current.filter((item) => item.id !== job.id));
+    } catch {
+      setError("Could not delete that job.");
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">Jobs</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-neutral-900">Jobs</h1>
           <p className="mt-1 text-sm text-neutral-600">
             Manage job postings for your organization.
           </p>
         </div>
         <Link
           href="/dashboard/jobs/new"
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary-700"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-700 hover:shadow-accent"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
           New job
@@ -134,7 +173,7 @@ export default function JobsPage() {
       </div>
 
       {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-3 rounded-md border border-neutral-200 bg-white p-3 shadow-panel">
+      <div className="glass-panel flex flex-wrap items-center gap-3 rounded-lg p-3">
         {/* Search */}
         <div className="relative flex-1 min-w-[180px]">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" aria-hidden="true" />
@@ -185,9 +224,9 @@ export default function JobsPage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-md border border-neutral-200 bg-white shadow-panel">
-        <table className="min-w-full divide-y divide-neutral-200">
-          <thead className="bg-neutral-50">
+      <div className="glass-panel overflow-x-auto rounded-lg">
+        <table className="min-w-full divide-y divide-neutral-200/70">
+          <thead className="bg-white/40">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-neutral-500">
                 Job
@@ -206,7 +245,7 @@ export default function JobsPage() {
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-200">
+          <tbody className="divide-y divide-neutral-200/70">
             {isLoading ? (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-sm text-neutral-500">
@@ -279,6 +318,25 @@ export default function JobsPage() {
                           <Archive className="h-4 w-4" aria-hidden="true" />
                         </button>
                       )}
+                      {job.status === "archived" && (
+                        <button
+                          type="button"
+                          onClick={() => handleRestore(job)}
+                          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-neutral-200 px-3 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+                          title="Restore to draft"
+                        >
+                          <ArchiveRestore className="h-4 w-4" aria-hidden="true" />
+                          Restore
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(job)}
+                        className="inline-flex h-9 items-center justify-center rounded-md border border-danger-600/30 px-3 text-sm font-medium text-danger-600 hover:bg-danger-50"
+                        title="Delete job"
+                      >
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      </button>
                     </div>
                   </td>
                 </tr>

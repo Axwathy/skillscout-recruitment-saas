@@ -21,4 +21,9 @@ urlpatterns = [
         candidate_views.CandidateResumeUploadView.as_view(),
         name="candidate-resume-upload",
     ),
+    path(
+        "me/recommendations/",
+        candidate_views.CandidateRecommendationsView.as_view(),
+        name="candidate-recommendations",
+    ),
 ]

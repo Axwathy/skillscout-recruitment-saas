@@ -2,8 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/**
+ * SkillScout design tokens (Stitch "Skill Scout" system).
+ * Sleek Glassmorphic: atmospheric grayscale + vibrant #EB4425 accent, Urbanist type.
+ */
 :root {
   color-scheme: light;
+
+  /* Brand */
+  --accent: #eb4425;
+  --accent-strong: #d93719;
+  --accent-pressed: #b51d00;
+
+  /* Surfaces */
+  --background: #f9f9f9;
+  --surface: #ffffff;
+  --surface-container: #f3f3f3;
+  --on-surface: #1a1c1c;
+  --on-surface-variant: #5b403a;
+  --outline: #d2d2d0;
+
+  /* Glass */
+  --glass-bg: rgb(255 255 255 / 0.72);
+  --glass-border: rgb(255 255 255 / 0.55);
 }
 
 * {
@@ -16,6 +37,17 @@ html {
 
 body {
   margin: 0;
+  /* Atmospheric grayscale base — subtle radial depth (Level 1). */
+  background-color: var(--background);
+  background-image: radial-gradient(
+    1200px circle at 50% -10%,
+    #ffffff 0%,
+    #f5f5f5 45%,
+    #ececec 100%
+  );
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 a {
@@ -23,3 +55,76 @@ a {
   text-decoration: none;
 }
 
+/* Headlines get the "locked-in" architectural feel: tighter tracking. */
+h1,
+h2,
+h3 {
+  letter-spacing: -0.01em;
+}
+
+@layer components {
+  /* Reference card — clean solid white, thin light divider, soft diffused shadow. */
+  .glass-panel {
+    background-color: #ffffff;
+    border: 1px solid rgb(210 210 208 / 0.7);
+    box-shadow: 0 12px 32px -14px rgb(26 28 28 / 0.12);
+  }
+
+  /* Uppercase metadata / tag treatment. */
+  .label-meta {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    font-size: 0.75rem;
+  }
+}
+
+/* Calm focus ring in brand accent. */
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Landing "Signal Room" motion ── */
+@keyframes radar-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes signal-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.18;
+  }
+}
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-radar-spin {
+  animation: radar-spin 8s linear infinite;
+}
+.animate-signal-pulse {
+  animation: signal-pulse 4s ease-in-out infinite;
+}
+.animate-rise-in {
+  animation: rise-in 0.6s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-radar-spin,
+  .animate-signal-pulse,
+  .animate-rise-in {
+    animation: none;
+  }
+}

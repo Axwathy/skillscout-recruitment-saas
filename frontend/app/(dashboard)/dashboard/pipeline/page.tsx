@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   ArrowDown,
   ArrowUp,
-  ChevronRight,
   Plus,
   RefreshCw,
   Save,
@@ -34,7 +33,8 @@ import {
   updatePipelineStage,
   type PipelineStagePayload,
 } from "@/lib/pipeline";
-import { formatScore, scoreTone } from "@/lib/scores";
+import { scorePercent } from "@/lib/scores";
+import { MatchRing } from "@/components/ui/MatchRing";
 import type { CandidateApplication, PipelineBoard, PipelineColumn, PipelineStage } from "@/types/candidate";
 import type { ApplicationStatus, Job } from "@/types/jobs";
 
@@ -135,7 +135,6 @@ function moveApplication(board: PipelineBoard, appId: string, targetColumn: Pipe
 }
 
 function PipelineCard({ app, column }: { app: CandidateApplication; column: PipelineColumn }) {
-  const style = columnStyle(column);
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: app.id,
     data: {
@@ -149,6 +148,10 @@ function PipelineCard({ app, column }: { app: CandidateApplication; column: Pipe
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
     : undefined;
 
+  const name = `${app.candidate.first_name} ${app.candidate.last_name}`.trim() || app.candidate.email;
+  const initials = (app.candidate.first_name?.[0] ?? app.candidate.email[0] ?? "?").toUpperCase();
+  const pct = scorePercent(app.final_score);
+
   return (
     <Link
       ref={setNodeRef}
@@ -157,29 +160,32 @@ function PipelineCard({ app, column }: { app: CandidateApplication; column: Pipe
       style={dragStyle}
       {...listeners}
       {...attributes}
-      className={`block touch-none rounded-lg border bg-white p-3 shadow-sm transition-all hover:border-primary-300 hover:shadow-md ${style.card} ${
-        isDragging ? "opacity-50 ring-2 ring-primary-400" : ""
+      className={`group block cursor-grab touch-none rounded-2xl border border-neutral-100 bg-white p-3.5 shadow-[0_8px_20px_-14px_rgba(26,28,28,0.25)] transition-all hover:-translate-y-0.5 hover:shadow-[0_16px_30px_-16px_rgba(26,28,28,0.3)] active:cursor-grabbing ${
+        isDragging ? "rotate-2 opacity-70 ring-2 ring-[#EB4425]/40" : ""
       }`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-neutral-900">
-            {app.candidate.first_name} {app.candidate.last_name}
-          </p>
-          <p className="truncate text-xs text-neutral-500">{app.job_title}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <span
-            className={`inline-flex h-6 min-w-8 items-center justify-center rounded-full px-2 text-xs font-bold ${scoreTone(app.final_score)}`}
-            title="Overall match score"
-          >
-            {formatScore(app.final_score)}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EB4425]/10 text-sm font-bold text-[#EB4425]">
+            {initials}
           </span>
-          <ChevronRight className="h-3.5 w-3.5 text-neutral-300" aria-hidden="true" />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold text-neutral-900">{name}</p>
+            <p className="truncate text-xs text-neutral-500">{app.job_title}</p>
+          </div>
         </div>
+        {pct !== null ? (
+          <MatchRing value={pct} size={40} strokeWidth={4} />
+        ) : (
+          <span className="text-[10px] font-bold uppercase tracking-wide text-neutral-300">N/A</span>
+        )}
       </div>
-      <p className="mt-2 truncate text-xs text-neutral-400">{app.candidate.email}</p>
-      <p className="mt-1 text-xs text-neutral-400">Applied {formatDate(app.applied_at)}</p>
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-neutral-100 pt-2.5">
+        <span className="truncate text-xs text-neutral-400">{app.candidate.email}</span>
+        <span className="shrink-0 text-[11px] font-medium text-neutral-400">
+          {formatDate(app.applied_at)}
+        </span>
+      </div>
     </Link>
   );
 }
@@ -191,25 +197,27 @@ function KanbanColumn({ column }: { column: PipelineColumn }) {
   return (
     <div
       ref={setNodeRef}
-      className={`flex w-64 shrink-0 flex-col overflow-hidden rounded-lg border bg-neutral-50 transition-colors ${
-        isOver ? "border-primary-400 ring-2 ring-primary-300" : "border-neutral-200"
+      className={`flex w-72 shrink-0 flex-col rounded-[20px] border p-3 transition-colors ${
+        isOver ? "border-[#EB4425]/40 bg-[#EB4425]/5" : "border-neutral-200/70 bg-neutral-100/40"
       }`}
     >
-      <div className={`flex items-center justify-between border-b px-4 py-3 ${style.header}`}>
+      <div className="flex items-center justify-between px-1.5 pb-3">
         <div className="flex min-w-0 items-center gap-2">
-          <div className={`h-2 w-2 shrink-0 rounded-full ${style.dot}`} />
-          <span className="truncate text-xs font-semibold uppercase text-neutral-700">
+          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${style.dot}`} />
+          <span className="truncate text-xs font-bold uppercase tracking-wide text-neutral-600">
             {column.label}
           </span>
         </div>
-        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1.5 text-xs font-bold text-neutral-600 shadow-sm">
+        <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-2 text-xs font-bold text-neutral-700 shadow-sm">
           {column.count}
         </span>
       </div>
 
-      <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-3">
+      <div className="flex max-h-[calc(100vh-280px)] min-h-[140px] flex-1 flex-col gap-2.5 overflow-y-auto px-0.5 pb-1">
         {column.applications.length === 0 ? (
-          <p className="py-6 text-center text-xs text-neutral-400">No candidates</p>
+          <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-neutral-300/80 py-10 text-center">
+            <p className="text-xs font-medium text-neutral-300">Drop candidates here</p>
+          </div>
         ) : (
           column.applications.map((app) => (
             <PipelineCard key={app.id} app={app} column={column} />
@@ -244,7 +252,7 @@ function StageConfigPanel({
   onMove: (index: number, direction: -1 | 1) => void;
 }) {
   return (
-    <section className="rounded-lg border border-neutral-200 bg-white p-4 shadow-panel">
+    <section className="glass-panel rounded-lg p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold text-neutral-900">Job stages</h2>
@@ -260,13 +268,13 @@ function StageConfigPanel({
               <input
                 value={draft.name ?? stage.name}
                 onChange={(event) => onDraftChange(stage.id, { name: event.target.value })}
-                className="h-9 rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-primary-500"
+                className="h-9 rounded-lg border border-neutral-200 bg-white/70 px-3 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-900 focus:bg-white"
                 aria-label="Stage name"
               />
               <select
                 value={draft.status ?? stage.status}
                 onChange={(event) => onDraftChange(stage.id, { status: event.target.value as ApplicationStatus })}
-                className="h-9 rounded-md border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-primary-500"
+                className="h-9 rounded-lg border border-neutral-200 bg-white/70 px-3 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-900 focus:bg-white"
                 aria-label="Stage status"
               >
                 {STATUS_OPTIONS.map((option) => (
@@ -276,7 +284,7 @@ function StageConfigPanel({
               <select
                 value={draft.color ?? stage.color}
                 onChange={(event) => onDraftChange(stage.id, { color: event.target.value })}
-                className="h-9 rounded-md border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-primary-500"
+                className="h-9 rounded-lg border border-neutral-200 bg-white/70 px-3 text-sm text-neutral-900 outline-none transition-colors focus:border-neutral-900 focus:bg-white"
                 aria-label="Stage color"
               >
                 {COLOR_OPTIONS.map((color) => (
@@ -571,9 +579,12 @@ export default function PipelinePage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">Pipeline</h1>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EB4425]/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#EB4425]">
+            Hiring board
+          </span>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight text-neutral-900">Pipeline</h1>
           <p className="mt-1 text-sm text-neutral-500">
-            {totalApplications} total application{totalApplications !== 1 ? "s" : ""} · drag a card to change stage
+            {totalApplications} total application{totalApplications !== 1 ? "s" : ""} · drag a card to move a candidate between stages
           </p>
         </div>
 
@@ -581,7 +592,7 @@ export default function PipelinePage() {
           <select
             value={jobFilter}
             onChange={(event) => void handleJobFilter(event.target.value)}
-            className="h-9 rounded-md border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none focus:border-primary-500"
+            className="h-10 rounded-full border border-neutral-200 bg-white px-4 text-sm text-neutral-700 outline-none transition-colors focus:border-neutral-900"
           >
             <option value="">All jobs</option>
             {jobs.map((job) => (
@@ -594,7 +605,7 @@ export default function PipelinePage() {
             type="button"
             onClick={() => void toggleConfig()}
             disabled={!jobFilter}
-            className="flex h-9 items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-3 text-sm font-medium text-neutral-600 hover:bg-neutral-50 disabled:opacity-40"
+            className="flex h-10 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-700 transition-colors hover:border-neutral-900 disabled:opacity-40"
             title={jobFilter ? "Configure stages" : "Select a job to configure stages"}
           >
             {isConfigOpen ? <X className="h-3.5 w-3.5" aria-hidden="true" /> : <Settings className="h-3.5 w-3.5" aria-hidden="true" />}
@@ -603,7 +614,7 @@ export default function PipelinePage() {
           <button
             type="button"
             onClick={() => void loadBoard(jobFilter || undefined)}
-            className="flex h-9 items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-3 text-sm font-medium text-neutral-600 hover:bg-neutral-50"
+            className="flex h-10 items-center gap-1.5 rounded-full bg-[#EB4425] px-4 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(235,68,37,0.5)] transition-all hover:bg-[#D93719]"
           >
             <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
             Refresh
@@ -639,7 +650,7 @@ export default function PipelinePage() {
       ) : (
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <div className="overflow-x-auto pb-4">
-            <div className="flex gap-4" style={{ minWidth: "max-content" }}>
+            <div className="flex gap-5" style={{ minWidth: "max-content" }}>
               {board.columns.map((column) => (
                 <KanbanColumn key={columnKey(column)} column={column} />
               ))}

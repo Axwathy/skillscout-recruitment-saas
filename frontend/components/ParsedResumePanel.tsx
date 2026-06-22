@@ -36,7 +36,7 @@ interface ParsedResumePanelProps {
 export function ParsedResumePanel({ parsedResume }: ParsedResumePanelProps) {
   if (!parsedResume) {
     return (
-      <div className="rounded-lg border border-neutral-200 bg-white p-3 text-sm text-neutral-500">
+      <div className="glass-panel rounded-lg p-3 text-sm text-neutral-500">
         Parsed profile is not available yet.
       </div>
     );
@@ -52,7 +52,7 @@ export function ParsedResumePanel({ parsedResume }: ParsedResumePanelProps) {
   ].filter(Boolean);
 
   return (
-    <div className="space-y-4 rounded-lg border border-neutral-200 bg-white p-4">
+    <div className="glass-panel space-y-4 rounded-lg p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h3 className="text-sm font-semibold text-neutral-900">Parsed profile</h3>

@@ -1,14 +1,27 @@
 from django.contrib import admin
 from django.urls import include, path
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularRedocView,
+    SpectacularSwaggerView,
+)
 
 from apps.candidates.views import ResumeDownloadFileView, ResumeReparseView, ResumeViewFileView
 
-admin.site.site_header = "Lumina Nexus Admin"
-admin.site.site_title = "Lumina Nexus"
+admin.site.site_header = "SkillScout Admin"
+admin.site.site_title = "SkillScout"
 admin.site.index_title = "Recruitment Operations"
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    # API documentation
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path(
+        "api/docs/",
+        SpectacularSwaggerView.as_view(url_name="schema"),
+        name="swagger-ui",
+    ),
+    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
     path("api/v1/auth/", include("apps.accounts.urls")),
     path("api/v1/jobs/", include("apps.jobs.urls")),
     path("api/v1/search/", include("apps.ai_engine.urls")),

@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BriefcaseBusiness, ChevronRight } from "lucide-react";
+import { BriefcaseBusiness, ChevronRight, Trash2 } from "lucide-react";
 
-import { getCandidateApplications } from "@/lib/candidate";
+import { getCandidateApplications, withdrawCandidateApplication } from "@/lib/candidate";
 import type { CandidateApplication } from "@/types/candidate";
 import type { ApplicationStatus } from "@/types/jobs";
 
@@ -62,6 +62,19 @@ export default function CandidateApplicationsPage() {
     return () => { ignore = true; };
   }, []);
 
+  async function handleWithdraw(app: CandidateApplication) {
+    const confirmed = window.confirm(
+      `Delete your application to ${app.job_title} at ${app.organization_name}? This cannot be undone.`,
+    );
+    if (!confirmed) return;
+    try {
+      await withdrawCandidateApplication(app.id);
+      setApplications((current) => current.filter((item) => item.id !== app.id));
+    } catch {
+      // ignore — row stays if the request fails
+    }
+  }
+
   const filtered = statusFilter
     ? applications.filter((a) => a.status === statusFilter)
     : applications;
@@ -93,7 +106,7 @@ export default function CandidateApplicationsPage() {
       </div>
 
       {/* List */}
-      <div className="rounded-xl border border-neutral-200 bg-white shadow-panel overflow-hidden">
+      <div className="glass-panel overflow-hidden rounded-lg">
         {isLoading ? (
           <div className="py-12 text-center text-sm text-neutral-400">Loading…</div>
         ) : filtered.length === 0 ? (
@@ -104,12 +117,12 @@ export default function CandidateApplicationsPage() {
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-neutral-100">
+          <ul className="divide-y divide-neutral-200/70">
             {filtered.map((app) => (
-              <li key={app.id}>
+              <li key={app.id} className="flex items-center gap-2 pr-4">
                 <Link
                   href={`/candidate/applications/${app.id}`}
-                  className="flex items-center gap-4 px-5 py-4 hover:bg-neutral-50 transition-colors group"
+                  className="group flex flex-1 items-center gap-4 py-4 pl-5 transition-colors hover:bg-white/50"
                 >
                   {/* Company initial */}
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-sm font-bold text-primary-600">
@@ -134,6 +147,15 @@ export default function CandidateApplicationsPage() {
 
                   <ChevronRight className="h-4 w-4 shrink-0 text-neutral-300 group-hover:text-primary-400" />
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => handleWithdraw(app)}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-danger-600/30 text-danger-600 transition-colors hover:bg-danger-50"
+                  title="Delete application"
+                  aria-label={`Delete application to ${app.job_title}`}
+                >
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </button>
               </li>
             ))}
           </ul>

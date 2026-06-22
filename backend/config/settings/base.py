@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
+    "drf_spectacular",
     "channels",
     "pgvector.django",
     # Internal apps
@@ -147,7 +148,18 @@ CACHES = {
 # ---------------------------------------------------------------------------
 # Django REST Framework
 # ---------------------------------------------------------------------------
+SPECTACULAR_SETTINGS = {
+    "TITLE": "SkillScout API",
+    "DESCRIPTION": (
+        "AI-assisted recruitment platform API — jobs, candidates, applications, "
+        "AI scoring, pipeline, interviews, analytics, and notifications."
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+}
+
 REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "apps.accounts.authentication.CookieJWTAuthentication",
     ],
@@ -223,9 +235,28 @@ CORS_ALLOW_CREDENTIALS = True
 # Browser security
 # ---------------------------------------------------------------------------
 CSRF_COOKIE_NAME = "csrftoken"
-CSRF_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_HTTPONLY = False
-SESSION_COOKIE_SAMESITE = "Lax"
+
+# Cookie SameSite — "Lax" for same-site (local dev), "None" for cross-site
+# production (frontend and backend on different domains, e.g. Vercel + Railway).
+# Browsers require Secure when SameSite=None.
+COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "Lax")
+CSRF_COOKIE_SAMESITE = COOKIE_SAMESITE
+SESSION_COOKIE_SAMESITE = COOKIE_SAMESITE
+AUTH_COOKIE_SAMESITE = COOKIE_SAMESITE
+AUTH_COOKIE_SECURE = os.getenv("AUTH_COOKIE_SECURE", "false" if DEBUG else "true").lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+
+# Origins trusted for cross-site CSRF-protected POSTs (full scheme + host).
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
+]
 ENFORCE_CSRF_ON_COOKIE_AUTH = os.getenv(
     "ENFORCE_CSRF_ON_COOKIE_AUTH",
     "false" if DEBUG else "true",
@@ -285,5 +316,5 @@ EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() in {"1", "true", "yes", "on"}
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@luminanexus.local")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@skillscout.local")
 FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000")

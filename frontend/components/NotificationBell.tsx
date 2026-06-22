@@ -126,8 +126,8 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-80 rounded-xl border border-neutral-200 bg-white shadow-lg">
-          <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-2.5">
+        <div className="absolute right-0 z-50 mt-2 w-80 animate-fade-in rounded-xl border border-neutral-200 bg-white shadow-glass-lg">
+          <div className="flex items-center justify-between border-b border-neutral-200/70 px-4 py-2.5">
             <span className="text-sm font-semibold text-neutral-900">Notifications</span>
             <button
               type="button"
@@ -149,7 +149,7 @@ export function NotificationBell() {
                   type="button"
                   key={notification.id}
                   onClick={() => void handleClick(notification)}
-                  className={`flex w-full flex-col gap-0.5 border-b border-neutral-50 px-4 py-3 text-left transition-colors hover:bg-neutral-50 ${
+                  className={`flex w-full flex-col gap-0.5 border-b border-neutral-200/60 px-4 py-3 text-left transition-colors hover:bg-neutral-50 ${
                     notification.is_read ? "" : "bg-primary-50/40"
                   }`}
                 >

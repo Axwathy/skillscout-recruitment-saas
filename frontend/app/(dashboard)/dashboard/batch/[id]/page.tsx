@@ -56,7 +56,7 @@ export default function BatchDetailPage() {
       </Link>
 
       <div>
-        <h1 className="text-2xl font-semibold text-neutral-900">Batch progress</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-neutral-900">Batch progress</h1>
         <p className="mt-1 text-sm text-neutral-600">
           Live progress, per-item status, and retry controls for failed items.
         </p>

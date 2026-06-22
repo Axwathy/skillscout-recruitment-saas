@@ -65,6 +65,10 @@ export async function archiveJob(id: string): Promise<Job> {
   return apiFetch<Job>(`/api/v1/jobs/${id}/archive/`, { method: "POST" });
 }
 
+export async function restoreJob(id: string): Promise<Job> {
+  return apiFetch<Job>(`/api/v1/jobs/${id}/restore/`, { method: "POST" });
+}
+
 export async function getRankedCandidates(
   id: string,
   options: { force?: boolean; limit?: number } = {},

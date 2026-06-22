@@ -4,6 +4,7 @@ import type {
   CandidateNote,
   CandidateProfile,
   CandidateRecord,
+  JobRecommendation,
   PipelineBoard,
   RecruiterCandidateProfile,
 } from "@/types/candidate";
@@ -12,6 +13,18 @@ import type {
 
 export async function getCandidateApplications(): Promise<CandidateApplication[]> {
   return apiFetch<CandidateApplication[]>("/api/v1/candidate/me/applications/", {
+    method: "GET",
+  });
+}
+
+export async function withdrawCandidateApplication(applicationId: string): Promise<void> {
+  await apiFetch<void>(`/api/v1/candidate/me/applications/${applicationId}/`, {
+    method: "DELETE",
+  });
+}
+
+export async function getCandidateRecommendations(): Promise<JobRecommendation[]> {
+  return apiFetch<JobRecommendation[]>("/api/v1/candidate/me/recommendations/", {
     method: "GET",
   });
 }
@@ -25,6 +38,15 @@ export async function getCandidateApplication(id: string): Promise<CandidateAppl
 export async function getCandidateProfile(): Promise<CandidateProfile> {
   return apiFetch<CandidateProfile>("/api/v1/candidate/me/profile/", {
     method: "GET",
+  });
+}
+
+export async function updateCandidateProfile(
+  payload: Partial<CandidateProfile>,
+): Promise<CandidateProfile> {
+  return apiFetch<CandidateProfile>("/api/v1/candidate/me/profile/", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
   });
 }
 
@@ -106,6 +128,12 @@ export async function updateCandidateNote(
 
 export async function deleteCandidateNote(candidateId: string, noteId: string): Promise<void> {
   await apiFetch<void>(`/api/v1/applications/candidates/${candidateId}/notes/${noteId}/`, {
+    method: "DELETE",
+  });
+}
+
+export async function deleteCandidate(candidateId: string): Promise<void> {
+  await apiFetch<void>(`/api/v1/applications/candidates/${candidateId}/`, {
     method: "DELETE",
   });
 }

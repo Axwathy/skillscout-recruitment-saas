@@ -2,9 +2,9 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { Mail, RefreshCcw, Search, UserRound, X } from "lucide-react";
+import { Mail, RefreshCcw, Search, Trash2, UserRound, X } from "lucide-react";
 
-import { getRecruiterCandidates } from "@/lib/candidate";
+import { deleteCandidate, getRecruiterCandidates } from "@/lib/candidate";
 import type { CandidateRecord } from "@/types/candidate";
 
 function formatDate(value: string) {
@@ -51,6 +51,19 @@ export default function CandidatesPage() {
     loadCandidates("");
   }
 
+  async function handleDelete(candidate: CandidateRecord) {
+    const confirmed = window.confirm(
+      `Delete ${candidateName(candidate)}? This permanently removes the candidate and their applications, resumes, and notes. This cannot be undone.`,
+    );
+    if (!confirmed) return;
+    try {
+      await deleteCandidate(candidate.id);
+      setCandidates((current) => current.filter((item) => item.id !== candidate.id));
+    } catch {
+      setError("Could not delete that candidate.");
+    }
+  }
+
   useEffect(() => {
     let ignore = false;
 
@@ -76,7 +89,7 @@ export default function CandidatesPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">Candidates</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-neutral-900">Candidates</h1>
           <p className="mt-1 text-sm text-neutral-600">
             Review candidate profiles, notes, resumes, scores, and activity.
           </p>
@@ -141,9 +154,9 @@ export default function CandidatesPage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-md border border-neutral-200 bg-white shadow-panel">
-        <table className="min-w-full divide-y divide-neutral-200">
-          <thead className="bg-neutral-50">
+      <div className="glass-panel overflow-x-auto rounded-lg">
+        <table className="min-w-full divide-y divide-neutral-200/70">
+          <thead className="bg-white/40">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-neutral-500">
                 Candidate
@@ -157,18 +170,21 @@ export default function CandidatesPage() {
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-neutral-500">
                 Added
               </th>
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-neutral-500">
+                Actions
+              </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-200">
+          <tbody className="divide-y divide-neutral-200/70">
             {isLoading ? (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-sm text-neutral-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-sm text-neutral-500">
                   Loading candidates...
                 </td>
               </tr>
             ) : candidates.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-sm text-neutral-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-sm text-neutral-500">
                   {activeSearch ? "No candidates match your search." : "No candidates found."}
                 </td>
               </tr>
@@ -201,6 +217,17 @@ export default function CandidatesPage() {
                   </td>
                   <td className="px-4 py-4 text-sm text-neutral-700">
                     {formatDate(candidate.created_at)}
+                  </td>
+                  <td className="px-4 py-4 text-right">
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(candidate)}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-danger-600/30 text-danger-600 transition-colors hover:bg-danger-50"
+                      title="Delete candidate"
+                      aria-label={`Delete ${candidateName(candidate)}`}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
                   </td>
                 </tr>
               ))

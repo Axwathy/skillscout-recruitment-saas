@@ -5,33 +5,18 @@ import axios, {
 } from "axios";
 
 function getApiBaseUrl() {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    if (typeof window !== "undefined") {
-      try {
-        const configuredUrl = new URL(process.env.NEXT_PUBLIC_API_URL);
-        const localHostnames = new Set(["localhost", "127.0.0.1"]);
-
-        if (
-          localHostnames.has(configuredUrl.hostname) &&
-          localHostnames.has(window.location.hostname) &&
-          configuredUrl.hostname !== window.location.hostname
-        ) {
-          configuredUrl.hostname = window.location.hostname;
-          return configuredUrl.toString().replace(/\/$/, "");
-        }
-      } catch {
-        return process.env.NEXT_PUBLIC_API_URL;
-      }
-    }
-
-    return process.env.NEXT_PUBLIC_API_URL;
-  }
-
+  // In the browser, use a relative (same-origin) base URL so every API call
+  // is made to the frontend's own domain and then proxied to the backend via
+  // the rewrite in next.config.mjs. This keeps the auth cookies first-party to
+  // the frontend domain, which is required when the backend runs on a
+  // different host (e.g. frontend on Vercel, backend on Railway) — otherwise
+  // the cookies are third-party and the browser/middleware never see them.
   if (typeof window !== "undefined") {
-    return `${window.location.protocol}//${window.location.hostname}:8000`;
+    return "";
   }
 
-  return "http://localhost:8000";
+  // Server-side (SSR / build): talk to the backend origin directly.
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 }
 
 const apiBaseUrl = getApiBaseUrl();

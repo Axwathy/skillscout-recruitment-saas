@@ -139,7 +139,7 @@ export default function ApplicationsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">Applications</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-neutral-900">Applications</h1>
           <p className="mt-1 text-sm text-neutral-600">
             Review candidate submissions across published jobs.
           </p>
@@ -154,7 +154,7 @@ export default function ApplicationsPage() {
         </button>
       </div>
 
-      <div className="flex flex-wrap items-end gap-3 rounded-lg border border-neutral-200 bg-white p-4 shadow-panel">
+      <div className="glass-panel flex flex-wrap items-end gap-3 rounded-lg p-4">
         <div>
           <p className="text-xs font-semibold uppercase text-neutral-500">Selected</p>
           <p className="text-sm font-medium text-neutral-900">{selectedIds.size} applications</p>
@@ -210,9 +210,9 @@ export default function ApplicationsPage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-md border border-neutral-200 bg-white shadow-panel">
-        <table className="min-w-full divide-y divide-neutral-200">
-          <thead className="bg-neutral-50">
+      <div className="glass-panel overflow-x-auto rounded-lg">
+        <table className="min-w-full divide-y divide-neutral-200/70">
+          <thead className="bg-white/40">
             <tr>
               <th className="w-12 px-4 py-3">
                 <input
@@ -237,7 +237,7 @@ export default function ApplicationsPage() {
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-200">
+          <tbody className="divide-y divide-neutral-200/70">
             {isLoading ? (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-sm text-neutral-500">

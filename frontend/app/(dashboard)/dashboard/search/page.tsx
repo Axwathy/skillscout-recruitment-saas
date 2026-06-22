@@ -140,13 +140,13 @@ export default function DashboardSearchPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-neutral-900">Semantic Search</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-neutral-900">Find Talent</h1>
         <p className="mt-1 text-sm text-neutral-600">
-          Search candidates and jobs using semantic relevance plus keyword matching.
+          Search candidates and jobs by meaning — semantic relevance plus keyword matching.
         </p>
       </div>
 
-      <section className="rounded-xl border border-neutral-200 bg-white p-5 shadow-panel">
+      <section className="glass-panel rounded-lg p-5">
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 lg:flex-row">
           <label className="sr-only" htmlFor="semantic-search">
             Search candidates and jobs
@@ -161,12 +161,12 @@ export default function DashboardSearchPage() {
               value={queryDraft}
               onChange={(event) => setQueryDraft(event.target.value)}
               placeholder="Try senior React developer with healthcare experience"
-              className="h-12 w-full rounded-md border border-neutral-200 pl-11 pr-3 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+              className="h-12 w-full rounded-xl border border-neutral-200 bg-white/70 pl-11 pr-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white"
             />
           </div>
           <button
             type="submit"
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-primary-600 px-5 text-sm font-semibold text-white hover:bg-primary-700"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 text-sm font-semibold text-white transition-all hover:bg-primary-700 hover:shadow-accent"
           >
             <Search className="h-4 w-4" aria-hidden="true" />
             Search
@@ -175,7 +175,7 @@ export default function DashboardSearchPage() {
       </section>
 
       <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="space-y-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-panel">
+        <aside className="glass-panel space-y-4 rounded-lg p-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <SlidersHorizontal className="h-4 w-4 text-primary-600" aria-hidden="true" />
@@ -200,7 +200,7 @@ export default function DashboardSearchPage() {
               onChange={(event) => updateFilter("skills", event.target.value)}
               onBlur={() => runSearch()}
               placeholder="Python, React"
-              className="mt-1 h-10 w-full rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+              className="mt-1.5 h-10 w-full rounded-xl border border-neutral-200 bg-white/70 px-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white"
             />
           </label>
 
@@ -212,7 +212,7 @@ export default function DashboardSearchPage() {
                 onChange={(event) => updateFilter("min_experience", event.target.value)}
                 onBlur={() => runSearch()}
                 inputMode="decimal"
-                className="mt-1 h-10 w-full rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                className="mt-1.5 h-10 w-full rounded-xl border border-neutral-200 bg-white/70 px-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white"
               />
             </label>
             <label className="block">
@@ -222,7 +222,7 @@ export default function DashboardSearchPage() {
                 onChange={(event) => updateFilter("max_experience", event.target.value)}
                 onBlur={() => runSearch()}
                 inputMode="decimal"
-                className="mt-1 h-10 w-full rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                className="mt-1.5 h-10 w-full rounded-xl border border-neutral-200 bg-white/70 px-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white"
               />
             </label>
           </div>
@@ -234,7 +234,7 @@ export default function DashboardSearchPage() {
               onChange={(event) => updateFilter("location", event.target.value)}
               onBlur={() => runSearch()}
               placeholder="Remote, Bengaluru"
-              className="mt-1 h-10 w-full rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+              className="mt-1.5 h-10 w-full rounded-xl border border-neutral-200 bg-white/70 px-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white"
             />
           </label>
 
@@ -247,7 +247,7 @@ export default function DashboardSearchPage() {
                 updateFilter("remote_policy", value);
                 runSearch(activeQuery, searchType, { ...filters, remote_policy: value });
               }}
-              className="mt-1 h-10 w-full rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+              className="mt-1.5 h-10 w-full rounded-xl border border-neutral-200 bg-white/70 px-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white"
             >
               {REMOTE_OPTIONS.map((option) => (
                 <option key={option.value || "any"} value={option.value}>
@@ -265,7 +265,7 @@ export default function DashboardSearchPage() {
                 updateFilter("status", event.target.value);
                 runSearch(activeQuery, searchType, { ...filters, status: event.target.value });
               }}
-              className="mt-1 h-10 w-full rounded-md border border-neutral-200 px-3 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+              className="mt-1.5 h-10 w-full rounded-xl border border-neutral-200 bg-white/70 px-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white"
             >
               {STATUS_OPTIONS.map((option) => (
                 <option key={option.value || "any"} value={option.value}>
@@ -286,7 +286,7 @@ export default function DashboardSearchPage() {
         </aside>
 
         <section className="space-y-4">
-          <div className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-4 shadow-panel sm:flex-row sm:items-center sm:justify-between">
+          <div className="glass-panel flex flex-col gap-3 rounded-lg p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap gap-2">
               {SEARCH_TYPES.map((item) => (
                 <button
@@ -315,7 +315,7 @@ export default function DashboardSearchPage() {
           )}
 
           {!hasSearch && !response ? (
-            <div className="rounded-xl border border-dashed border-neutral-200 bg-white px-6 py-16 text-center shadow-panel">
+            <div className="rounded-lg border border-dashed border-neutral-300 bg-white/50 px-6 py-16 text-center">
               <Search className="mx-auto h-10 w-10 text-neutral-300" aria-hidden="true" />
               <p className="mt-4 text-sm font-semibold text-neutral-900">
                 Search by role, skill, domain, location, or experience.
@@ -325,7 +325,7 @@ export default function DashboardSearchPage() {
               </p>
             </div>
           ) : response && response.results.length === 0 ? (
-            <div className="rounded-xl border border-neutral-200 bg-white px-6 py-16 text-center shadow-panel">
+            <div className="glass-panel rounded-lg px-6 py-16 text-center">
               <p className="text-sm font-semibold text-neutral-900">No results found.</p>
               <p className="mt-1 text-sm text-neutral-500">
                 Try fewer skills, a broader role title, or a different location.
@@ -341,7 +341,7 @@ export default function DashboardSearchPage() {
                       result.application_id ?? result.job_id ?? ""
                     }`}
                     href={result.url}
-                    className="block rounded-xl border border-neutral-200 bg-white p-5 shadow-panel transition hover:border-primary-200 hover:shadow-md"
+                    className="glass-panel block rounded-lg p-5 transition-all hover:-translate-y-0.5 hover:shadow-glass"
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">

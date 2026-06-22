@@ -7,34 +7,94 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   BarChart3,
   Briefcase,
-  ChevronDown,
+  FileText,
   GitBranch,
+  HelpCircle,
+  Home,
   LayoutDashboard,
-  LogOut,
   ListChecks,
+  LogOut,
   Search,
+  Settings,
   Users,
-  Zap,
+  Radar,
 } from "lucide-react";
 
 import { NotificationBell } from "@/components/NotificationBell";
+import {
+  OnboardingModal,
+  openOnboardingTour,
+  type OnboardingStep,
+} from "@/components/OnboardingModal";
 
-const NAV_ITEMS = [
-  { name: "Dashboard", href: "/dashboard", active: true, icon: LayoutDashboard },
-  { name: "Jobs", href: "/dashboard/jobs", active: true, icon: Briefcase },
-  { name: "Applications", href: "/dashboard/applications", active: true, icon: Users },
-  { name: "Pipeline", href: "/dashboard/pipeline", active: true, icon: GitBranch },
-  { name: "Candidates", href: "/dashboard/candidates", active: true, icon: Users },
-  { name: "Search", href: "/dashboard/search", active: true, icon: Search },
-  { name: "Analytics", href: "/dashboard/analytics", active: true, icon: BarChart3 },
-  { name: "Batch", href: "/dashboard/batch", active: true, icon: ListChecks },
+const RECRUITER_STEPS: OnboardingStep[] = [
+  {
+    icon: Radar,
+    title: "Welcome to SkillScout",
+    description:
+      "Your AI-assisted hiring workspace. Math ranks candidates, AI explains why — you stay in control of every decision.",
+  },
+  {
+    icon: Briefcase,
+    title: "Post a job",
+    description:
+      "Create and publish a role from the Jobs tab. Applications flow straight into your pipeline.",
+  },
+  {
+    icon: BarChart3,
+    title: "Let AI rank candidates",
+    description:
+      "Every applicant is scored on skills, semantic fit, and experience — with a clear breakdown you can trust.",
+  },
+  {
+    icon: GitBranch,
+    title: "Move people through hiring",
+    description:
+      "Drag candidates across pipeline stages, search talent by meaning, and track results in Insights.",
+  },
 ];
 
-export default function DashboardLayout({
+const NAV_ITEMS = [
+  { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Jobs", href: "/dashboard/jobs", icon: Briefcase },
+  { name: "Applications", href: "/dashboard/applications", icon: FileText },
+  { name: "Pipeline", href: "/dashboard/pipeline", icon: GitBranch },
+  { name: "Candidates", href: "/dashboard/candidates", icon: Users },
+  { name: "Insights", href: "/dashboard/analytics", icon: BarChart3 },
+  { name: "Bulk Screening", href: "/dashboard/batch", icon: ListChecks },
+];
+
+function RailLink({
+  href,
+  name,
+  active,
   children,
 }: {
+  href: string;
+  name: string;
+  active: boolean;
   children: React.ReactNode;
 }) {
+  return (
+    <Link href={href} className="group relative flex items-center justify-center">
+      <span
+        className={`flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-200 ${
+          active
+            ? "bg-[#EB4425] text-white shadow-[0_8px_20px_-6px_rgba(235,68,37,0.6)]"
+            : "text-neutral-400 hover:bg-white/10 hover:text-white"
+        }`}
+      >
+        {children}
+      </span>
+      {/* Tooltip */}
+      <span className="pointer-events-none absolute left-14 z-50 whitespace-nowrap rounded-lg bg-neutral-900 px-2.5 py-1 text-xs font-semibold text-white opacity-0 shadow-glass transition-opacity duration-150 group-hover:opacity-100">
+        {name}
+      </span>
+    </Link>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout, isLoading, refreshSession } = useAuth();
@@ -61,131 +121,147 @@ export default function DashboardLayout({
 
   if (!user || isLoading || isCandidateUser) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-t-transparent"></div>
+      <div className="flex min-h-screen items-center justify-center bg-neutral-50">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#EB4425] border-t-transparent" />
       </div>
     );
   }
 
+  const isSearchActive = pathname.startsWith("/dashboard/search");
+
   return (
-    <div className="min-h-screen bg-neutral-50 flex">
-      {/* Sidebar */}
-      <aside
-        className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-neutral-200 bg-white shadow-sm lg:flex z-20"
-        aria-label="Sidebar navigation"
-      >
-        {/* Logo */}
-        <div className="flex h-16 shrink-0 items-center border-b border-neutral-100 px-6 gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white">
-            <Zap className="h-4 w-4" />
-          </div>
-          <Link href="/dashboard" className="text-base font-bold text-neutral-900 tracking-tight">
-            RecruitAI
-          </Link>
-        </div>
+    <div className="flex min-h-screen">
+      {/* Dark icon rail */}
+      <aside className="fixed inset-y-0 left-0 z-30 flex w-[76px] flex-col items-center gap-3 bg-neutral-900 py-5">
+        {/* Brand logo */}
+        <Link
+          href="/dashboard"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#EB4425] text-white shadow-[0_8px_20px_-6px_rgba(235,68,37,0.6)]"
+          aria-label="SkillScout home"
+        >
+          <Radar className="h-5 w-5" />
+        </Link>
 
-        {/* Org Banner */}
-        {user?.recruiter_profile?.organization && (
-          <div className="px-4 pt-5 pb-2">
-            <div className="rounded-lg border border-neutral-200 bg-neutral-50/50 px-3 py-2 text-sm font-semibold text-neutral-700 truncate shadow-sm">
-              {user.recruiter_profile.organization.name}
-            </div>
-          </div>
-        )}
+        {/* Accent search button */}
+        <Link
+          href="/dashboard/search"
+          className={`group relative mt-2 flex items-center justify-center`}
+          aria-label="Find talent"
+        >
+          <span
+            className={`flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-200 ${
+              isSearchActive
+                ? "bg-[#EB4425] text-white shadow-[0_8px_20px_-6px_rgba(235,68,37,0.6)]"
+                : "bg-[#EB4425]/90 text-white hover:bg-[#EB4425]"
+            }`}
+          >
+            <Search className="h-5 w-5" />
+          </span>
+          <span className="pointer-events-none absolute left-14 z-50 whitespace-nowrap rounded-lg bg-neutral-900 px-2.5 py-1 text-xs font-semibold text-white opacity-0 shadow-glass transition-opacity duration-150 group-hover:opacity-100">
+            Find Talent
+          </span>
+        </Link>
 
-        {/* Nav */}
-        <nav className="flex-1 space-y-1 p-4 overflow-y-auto" aria-label="Dashboard navigation">
-          <div className="space-y-1">
-            {NAV_ITEMS.map((item) => {
-              const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
-              return (
-                <div key={item.name}>
-                  {item.active ? (
-                    <Link
-                      href={item.href}
-                      className={`group flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-all duration-200 ${
-                        isActive
-                          ? "bg-primary-50 text-primary-700"
-                          : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
-                      }`}
-                    >
-                      <item.icon className={`h-4 w-4 transition-colors ${isActive ? "text-primary-600" : "text-neutral-400 group-hover:text-neutral-600"}`} />
-                      {item.name}
-                    </Link>
-                  ) : (
-                    <div
-                      className="group flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-neutral-400 cursor-not-allowed select-none"
-                      title="Available in later sprints"
-                    >
-                      <item.icon className="h-4 w-4 opacity-50" />
-                      {item.name}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
+        {/* Section icons */}
+        <nav className="mt-2 flex flex-col items-center gap-2" aria-label="Dashboard navigation">
+          {NAV_ITEMS.map((item) => {
+            const active =
+              pathname === item.href ||
+              (item.href !== "/dashboard" && pathname.startsWith(item.href));
+            return (
+              <RailLink key={item.name} href={item.href} name={item.name} active={active}>
+                <item.icon className="h-5 w-5" />
+              </RailLink>
+            );
+          })}
         </nav>
 
-        {/* User Menu Area */}
-        <div className="border-t border-neutral-100 p-4 relative bg-neutral-50/50">
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="flex items-center w-full rounded-lg p-2 transition-colors hover:bg-neutral-200/50 focus:outline-none"
+        {/* Bottom: settings + avatar */}
+        <div className="mt-auto flex flex-col items-center gap-3">
+          <RailLink
+            href="/dashboard/settings/notifications"
+            name="Settings"
+            active={pathname.startsWith("/dashboard/settings")}
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-sm font-bold text-primary-700 shrink-0 ring-2 ring-white">
-              {user?.first_name ? user.first_name[0].toUpperCase() : "U"}
-            </div>
-            <div className="ml-3 flex-1 overflow-hidden text-left">
-              <p className="truncate text-sm font-semibold text-neutral-900">
-                {user?.first_name} {user?.last_name}
-              </p>
-              <p className="truncate text-xs text-neutral-500">{user?.email}</p>
-            </div>
-            <ChevronDown className={`ml-2 h-4 w-4 text-neutral-400 transition-transform duration-200 ${menuOpen ? "rotate-180" : ""}`} />
-          </button>
+            <Settings className="h-5 w-5" />
+          </RailLink>
 
-          {/* User Dropdown */}
-          {menuOpen && (
-            <div className="absolute bottom-[4.5rem] left-4 right-4 rounded-xl border border-neutral-200 bg-white p-1 shadow-lg animate-in slide-in-from-bottom-2 fade-in duration-200 z-50">
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  logout();
-                }}
-                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium text-danger-600 transition-colors hover:bg-danger-50"
-              >
-                <LogOut className="h-4 w-4" />
-                Sign out
-              </button>
-            </div>
-          )}
+          <div className="relative">
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EB4425]/20 text-sm font-bold text-white ring-2 ring-white/10 transition hover:ring-white/30"
+              aria-label="Account menu"
+            >
+              {user?.first_name ? user.first_name[0].toUpperCase() : "U"}
+            </button>
+            {menuOpen && (
+              <div className="absolute bottom-0 left-14 z-50 w-56 animate-fade-in rounded-xl border border-neutral-200 bg-white p-1 shadow-glass-lg">
+                <div className="border-b border-neutral-100 px-3 py-2">
+                  <p className="truncate text-sm font-semibold text-neutral-900">
+                    {user?.first_name} {user?.last_name}
+                  </p>
+                  <p className="truncate text-xs text-neutral-500">{user?.email}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    logout();
+                  }}
+                  className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-danger-600 transition-colors hover:bg-danger-50"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign out
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </aside>
 
       {/* Main area */}
-      <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
-        {/* Top bar — logo on mobile, notification bell on all sizes */}
-        <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between border-b border-neutral-200 bg-white/80 backdrop-blur-md px-4 sm:px-6">
-          <div className="flex items-center gap-2 lg:hidden">
-            <Zap className="h-5 w-5 text-primary-600" />
-            <span className="text-base font-bold text-neutral-900 tracking-tight">
-              RecruitAI
-            </span>
+      <div className="flex min-w-0 flex-1 flex-col pl-[76px]">
+        {/* Top bar */}
+        <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-neutral-200/70 bg-white/70 px-4 backdrop-blur-glass sm:px-8">
+          <div className="min-w-0">
+            {user?.recruiter_profile?.organization && (
+              <span className="truncate text-sm font-semibold text-neutral-700">
+                {user.recruiter_profile.organization.name}
+              </span>
+            )}
           </div>
-          <div className="ml-auto">
+          <div className="flex items-center gap-2">
+            <Link
+              href="/"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+              title="Back to home"
+              aria-label="Back to home"
+            >
+              <Home className="h-5 w-5" />
+            </Link>
+            <button
+              type="button"
+              onClick={openOnboardingTour}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+              title="Take a tour"
+              aria-label="Take a tour"
+            >
+              <HelpCircle className="h-5 w-5" />
+            </button>
             <NotificationBell />
           </div>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto bg-neutral-50 p-4 sm:p-6 lg:p-8">
-          <div className="mx-auto max-w-7xl">
-            {children}
-          </div>
+        <main id="main-content" className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto max-w-7xl">{children}</div>
         </main>
       </div>
+
+      <OnboardingModal
+        steps={RECRUITER_STEPS}
+        storageKey={`skillscout.onboarding.recruiter.${user.email}`}
+        eyebrow="Welcome to SkillScout"
+      />
     </div>
   );
 }

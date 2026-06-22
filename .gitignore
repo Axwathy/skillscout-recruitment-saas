@@ -41,5 +41,8 @@ Thumbs.db
 cookies.txt
 *.tsbuildinfo
 
+frontend/next.err.log
+frontend/next.out.log
+
 # MCP config (contains a personal access token)
 .mcp.json

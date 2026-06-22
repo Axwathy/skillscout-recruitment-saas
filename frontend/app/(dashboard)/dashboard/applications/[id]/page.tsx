@@ -220,8 +220,8 @@ export default function ApplicationDetailPage() {
         {/* Left Column (Main details) */}
         <div className="space-y-6 md:col-span-2">
           {/* Header */}
-          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-panel">
-            <h1 className="text-2xl font-bold text-neutral-900">
+          <div className="glass-panel rounded-lg p-6 shadow-panel">
+            <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
               {app.candidate.first_name} {app.candidate.last_name}
             </h1>
             <p className="text-sm text-neutral-500">
@@ -283,7 +283,7 @@ export default function ApplicationDetailPage() {
           </div>
 
           {/* Application History */}
-          <div className="rounded-xl border border-neutral-200 bg-white shadow-panel">
+          <div className="glass-panel rounded-lg shadow-panel">
             <div className="border-b border-neutral-100 px-6 py-4">
               <h2 className="text-base font-semibold text-neutral-900">Status History</h2>
             </div>
@@ -328,7 +328,7 @@ export default function ApplicationDetailPage() {
 
         {/* Right Column (Actions) */}
         <div className="space-y-6">
-          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-panel">
+          <div className="glass-panel rounded-lg p-6 shadow-panel">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-base font-semibold text-neutral-900">Match score</h2>
@@ -365,7 +365,7 @@ export default function ApplicationDetailPage() {
               type="button"
               onClick={handleRefreshScores}
               disabled={isScoring}
-              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-60"
+              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary-700 hover:shadow-accent disabled:opacity-60"
             >
               {isScoring ? (
                 <RefreshCw className="h-4 w-4 animate-spin" />
@@ -376,7 +376,7 @@ export default function ApplicationDetailPage() {
             </button>
           </div>
 
-          <div className="rounded-xl border border-neutral-200 bg-white shadow-panel p-6 space-y-4">
+          <div className="glass-panel rounded-lg shadow-panel p-6 space-y-4">
             <h2 className="text-base font-semibold text-neutral-900">Resume</h2>
             {app.resumes && app.resumes.length > 0 ? (
               <ul className="space-y-3">
@@ -447,7 +447,7 @@ export default function ApplicationDetailPage() {
             )}
           </div>
 
-          <div className="rounded-xl border border-neutral-200 bg-white shadow-panel p-6 space-y-4">
+          <div className="glass-panel rounded-lg shadow-panel p-6 space-y-4">
             <h2 className="text-base font-semibold text-neutral-900">Current Status</h2>
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-primary-500" />
@@ -470,7 +470,7 @@ export default function ApplicationDetailPage() {
                   <select
                     value={newStatus}
                     onChange={(e) => setNewStatus(e.target.value as ApplicationStatus)}
-                    className="mt-1 w-full rounded-md border border-neutral-200 px-3 py-1.5 text-sm"
+                    className="mt-1.5 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 py-2.5 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white"
                   >
                     {STATUS_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -486,14 +486,14 @@ export default function ApplicationDetailPage() {
                     onChange={(e) => setUpdateNotes(e.target.value)}
                     rows={2}
                     placeholder="E.g. Passed the technical screen"
-                    className="mt-1 w-full rounded-md border border-neutral-200 px-3 py-1.5 text-sm"
+                    className="mt-1.5 w-full rounded-xl border border-neutral-200 bg-white/70 px-4 py-2.5 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white"
                   />
                 </label>
                 <div className="flex gap-2">
                   <button
                     type="submit"
                     disabled={isUpdating}
-                    className="flex-1 rounded-md bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-600 px-3 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary-700 hover:shadow-accent disabled:opacity-50"
                   >
                     {isUpdating && <RefreshCw className="h-3 w-3 animate-spin" />}
                     Update

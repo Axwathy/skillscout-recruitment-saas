@@ -7,8 +7,35 @@ from rest_framework import generics, status, views
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Application, Candidate, Resume
-from .serializers import ApplicationDetailSerializer, ApplicationSerializer, CandidateSerializer
+from apps.jobs.models import Job
+
+from .models import Application, Candidate, ParsedResume, Resume
+from .serializers import (
+    ApplicationDetailSerializer,
+    ApplicationSerializer,
+    CandidateProfileUpdateSerializer,
+    CandidateSerializer,
+)
+
+
+def candidate_skill_set(email: str) -> set[str]:
+    """Collect a candidate's skills from their profile records and parsed resumes."""
+    skills: set[str] = set()
+    for candidate in Candidate.objects.filter(email=email):
+        for skill in candidate.skills or []:
+            if isinstance(skill, str) and skill.strip():
+                skills.add(skill.strip().lower())
+    parsed = (
+        ParsedResume.objects.filter(candidate__email=email)
+        .order_by("-parsed_at", "-created_at")
+        .first()
+    )
+    if parsed and isinstance(parsed.data, dict):
+        for skill in parsed.data.get("skills") or []:
+            name = skill.get("name") if isinstance(skill, dict) else skill
+            if isinstance(name, str) and name.strip():
+                skills.add(name.strip().lower())
+    return skills
 
 
 class IsCandidateUser(IsAuthenticated):
@@ -38,10 +65,11 @@ class CandidateApplicationListView(generics.ListAPIView):
         )
 
 
-class CandidateApplicationDetailView(generics.RetrieveAPIView):
+class CandidateApplicationDetailView(generics.RetrieveDestroyAPIView):
     """
-    GET /api/v1/candidate/me/applications/<pk>/
-    Returns a single application with full status history.
+    GET /api/v1/candidate/me/applications/<pk>/ — single application with history.
+    DELETE /api/v1/candidate/me/applications/<pk>/ — candidate withdraws/removes
+    their own application. Scoped to the logged-in candidate's email.
     """
 
     serializer_class = ApplicationDetailSerializer
@@ -64,15 +92,30 @@ class CandidateProfileView(views.APIView):
     permission_classes = [IsCandidateUser]
 
     def get(self, request, *args, **kwargs):
-        # Get the most recently created Candidate record for this email
-        candidate = (
-            Candidate.objects.filter(email=request.user.email)
-            .order_by("-created_at")
-            .first()
-        )
+        return self._profile_response(request)
 
+    def patch(self, request, *args, **kwargs):
+        candidates = list(Candidate.objects.filter(email=request.user.email))
+        if not candidates:
+            return Response(
+                {"detail": "Apply to a job before completing your profile."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        serializer = CandidateProfileUpdateSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        # Propagate the candidate's edits to every record under their email.
+        for candidate in candidates:
+            for field, value in serializer.validated_data.items():
+                setattr(candidate, field, value)
+            candidate.save()
+        return self._profile_response(request)
+
+    def _profile_response(self, request):
+        candidate = (
+            Candidate.objects.filter(email=request.user.email).order_by("-created_at").first()
+        )
         if not candidate:
-            # Candidate has account but hasn't applied to anything yet
+            # Candidate has an account but hasn't applied to anything yet.
             return Response(
                 {
                     "email": request.user.email,
@@ -81,6 +124,15 @@ class CandidateProfileView(views.APIView):
                     "phone": "",
                     "linkedin_url": "",
                     "github_url": "",
+                    "state": "",
+                    "country": "",
+                    "years_of_experience": None,
+                    "institution": "",
+                    "cgpa": "",
+                    "skills": [],
+                    "projects": [],
+                    "experience_entries": [],
+                    "certifications": [],
                     "application_count": 0,
                 }
             )
@@ -185,5 +237,61 @@ class CandidateResumeUploadView(views.APIView):
             extract_resume_text.delay(str(resume.id))
         except Exception:
             pass
-        
+
         return Response(ResumeSerializer(resume).data, status=201)
+
+
+class CandidateRecommendationsView(views.APIView):
+    """
+    GET /api/v1/candidate/me/recommendations/
+    Top open jobs ranked by how well they fit the candidate's skills.
+    Returns a 0-100 match estimate (graded by skill overlap with the job text).
+    """
+
+    permission_classes = [IsCandidateUser]
+
+    def get(self, request, *args, **kwargs):
+        skills = candidate_skill_set(request.user.email)
+        applied_job_ids = set(
+            Application.objects.filter(candidate__email=request.user.email).values_list(
+                "job_id", flat=True
+            )
+        )
+
+        jobs = (
+            Job.objects.filter(status="published")
+            .select_related("organization")
+            .order_by("-published_at")[:50]
+        )
+
+        results = []
+        for job in jobs:
+            if job.id in applied_job_ids:
+                continue
+            text = f"{job.title} {job.requirements} {job.description}".lower()
+            matched = [s for s in skills if s and s in text]
+            if skills:
+                ratio = len(matched) / len(skills)
+                score = round(min(98, 50 + 48 * ratio))
+            else:
+                score = None
+            results.append(
+                {
+                    "id": str(job.id),
+                    "slug": job.slug,
+                    "title": job.title,
+                    "organization_name": job.organization.name,
+                    "location": job.location,
+                    "employment_type": job.employment_type,
+                    "remote_policy": job.remote_policy,
+                    "salary_range": job.salary_range,
+                    "match_score": score,
+                    "matched_skills": len(matched),
+                }
+            )
+
+        results.sort(
+            key=lambda r: (r["match_score"] is not None, r["match_score"] or 0),
+            reverse=True,
+        )
+        return Response(results[:5])
